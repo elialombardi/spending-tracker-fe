@@ -23,10 +23,15 @@ RUN rm -rf /usr/share/nginx/html/*
 # Copy built files from the builder stage
 COPY --from=build /app/dist /usr/share/nginx/html
 
+# Copy entrypoint script that will generate a runtime env-config.js
+COPY docker/docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
 # Copy a custom nginx config if you need SPA routing
 # (optional, see note below)
 # COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]

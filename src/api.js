@@ -2,8 +2,11 @@
 // This file is intended to be handed to the backend developer so they
 // know the routes, HTTP verbs, and expected request/response shapes.
 
-// Prefer Vite env var `VITE_API_BASE`, then legacy `REACT_APP_API_BASE`, then local default.
-const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE)
+// Prefer runtime `window.__ENV__` (set by the container), then Vite env var `VITE_API_BASE`,
+// then legacy `REACT_APP_API_BASE`, then local default.
+const runtimeEnv = (typeof window !== 'undefined' && window.__ENV__) || {};
+const API_BASE = (runtimeEnv.VITE_API_BASE || runtimeEnv.REACT_APP_API_BASE)
+    || (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE)
     || (typeof process !== 'undefined' && process.env && process.env.REACT_APP_API_BASE)
     || 'https://localhost:7004';
 
