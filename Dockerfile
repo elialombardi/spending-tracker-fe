@@ -4,7 +4,8 @@ FROM node:24-alpine AS build
 WORKDIR /app
 
 # Copy package files first for better caching
-COPY package.json package-lock.json* ./
+# Use a glob so both `package.json` and `package-lock.json` are included reliably
+COPY package*.json ./
 RUN npm ci
 
 # Copy the rest of the source code
