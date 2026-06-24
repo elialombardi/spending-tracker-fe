@@ -38,11 +38,10 @@ jobs:
           tags: |
             type=ref,event=branch
             type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0', 'main') || github.ref == 'refs/heads/master' }}
-            type=semver,pattern={{version}}
+            type=raw,value=latest,enable={{is_default_branch}}
           labels: |
-            org.opencontainers.image.title=Frontend Service
-            org.opencontainers.image.description=Frontend UI for my application
+            org.opencontainers.image.title=Spending Tracker FE
+            org.opencontainers.image.description=Frontend UI for Spending Tracker
 
       - name: Build and push Frontend
         uses: docker/build-push-action@v5
