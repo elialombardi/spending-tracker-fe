@@ -49,7 +49,7 @@ function DashboardRoot() {
                         '.dashboard-page .panel, .dashboard-page .paper, .dashboard-page article': {
                             background: 'rgba(255,255,255,0.03) !important',
                         },
-                        '.comparison-panel, .spending-comparison-panel': {
+                        '.comparison-panel, .spending-comparison-panel, .current-month-trends-panel': {
                             minHeight: '50vh',
                             display: 'flex',
                             flexDirection: 'column',
@@ -86,6 +86,27 @@ function DashboardRoot() {
                             overflow: 'auto',
                             padding: '8px',
                             boxSizing: 'border-box',
+                        },
+                        '.current-month-summary-grid': {
+                            display: 'grid',
+                            gap: '12px',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                            marginBottom: '16px',
+                        },
+                        '.current-month-summary-card': {
+                            minHeight: '112px',
+                        },
+                        '.current-month-chart-shell': {
+                            display: 'flex',
+                            minHeight: '280px',
+                        },
+                        '.current-month-chart-frame': {
+                            flex: '1 1 0',
+                            minHeight: '280px',
+                            width: '100%',
+                        },
+                        '.current-month-chart-frame > div': {
+                            minHeight: '280px',
                         },
                         '.comparison-pie-card, .spending-series-card': {
                             flex: '1 1 0',
@@ -236,7 +257,7 @@ function DashboardRoot() {
             Promise.resolve().then(() => {
                 try {
                     root.unmount();
-                } catch (err) {
+                } catch {
                     // ignore unmount errors during teardown
                 }
                 if (mountNode.parentNode === host) {

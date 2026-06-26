@@ -202,6 +202,82 @@ function buildLineChartPoints(values, bucketCount, maxValue) {
     }))
 }
 
+function getAmountSpent(transaction) {
+    console.log('Transaction amount:', transaction.amount, transaction) // Debugging line
+    return Math.abs(transaction.amount)
+}
+
+function getMonthStartDate(date) {
+    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1))
+}
+
+function getMonthEndDate(date) {
+    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0))
+}
+
+function getStartOfWeek(date) {
+    const weekDate = new Date(date)
+    const dayOfWeek = weekDate.getUTCDay()
+    const dayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+
+    weekDate.setUTCDate(weekDate.getUTCDate() + dayOffset)
+    return weekDate
+}
+
+function getEndOfWeek(date) {
+    const weekDate = getStartOfWeek(date)
+
+    weekDate.setUTCDate(weekDate.getUTCDate() + 6)
+    return weekDate
+}
+
+function getDaySpanInclusive(startDate, endDate) {
+    return Math.max(1, getDayDifference(startDate, endDate) + 1)
+}
+
+function clampDate(currentDate, startDate, endDate) {
+    if (currentDate < startDate) {
+        return startDate
+    }
+
+    if (currentDate > endDate) {
+        return endDate
+    }
+
+    return currentDate
+}
+
+function buildWeekRangeLabel(startDate, endDate) {
+    const startDay = String(startDate.getUTCDate()).padStart(2, '0')
+    const endDay = String(endDate.getUTCDate()).padStart(2, '0')
+
+    return `${startDay}-${endDay}`
+}
+
+function buildPeriodWeeks(periodStart, periodEnd, today) {
+    const weeks = []
+    let currentWeekStart = clampDate(getStartOfWeek(periodStart), periodStart, periodEnd)
+
+    while (currentWeekStart <= periodEnd) {
+        const weekStart = new Date(currentWeekStart)
+        const weekEnd = clampDate(getEndOfWeek(weekStart), periodStart, periodEnd)
+
+        weeks.push({
+            label: buildWeekRangeLabel(weekStart, weekEnd),
+            from: formatDateOnly(weekStart),
+            isCurrent:
+                today >= weekStart && today <= weekEnd,
+            to: formatDateOnly(weekEnd),
+            totalSpent: 0,
+        })
+
+        currentWeekStart = new Date(weekEnd)
+        currentWeekStart.setUTCDate(currentWeekStart.getUTCDate() + 1)
+    }
+
+    return weeks
+}
+
 export function buildPieSegments(categories) {
     const visibleCategories = categories.filter((category) => category.totalSpent > 0)
     if (visibleCategories.length === 0) {
@@ -340,6 +416,72 @@ export function buildComparisonTrendData(comparisonCycleReports, selectedCompari
                 ? report.totalSpent
                 : report.categories.find((category) => category.category === selectedComparisonCategory)?.totalSpent ?? 0,
     }))
+}
+
+export function getWeeklyBudgetAllocation(cycleTotalIncome, cycleStart, cycleEnd, today) {
+    const cycleStartDate = parseDateOnly(cycleStart)
+    const cycleEndDate = parseDateOnly(cycleEnd)
+    const effectiveDate = clampDate(today, cycleStartDate, cycleEndDate)
+    const daysRemainingInCycle = getDaySpanInclusive(effectiveDate, cycleEndDate)
+    const daysRemainingInWeek = getDaySpanInclusive(effectiveDate, getEndOfWeek(effectiveDate))
+
+    return daysRemainingInCycle === 0
+        ? cycleTotalIncome
+        : (cycleTotalIncome * daysRemainingInWeek) / daysRemainingInCycle
+}
+
+export function buildCurrentCycleTrendData({ currentCycleReport, currentCycleTransactions }) {
+    const payments = currentCycleTransactions.filter((transaction) => transaction.direction !== 'income')
+    const today = getTodayDateOnly()
+    const cycleStart = currentCycleReport ? parseDateOnly(currentCycleReport.from) : getMonthStartDate(today)
+    const cycleEnd = currentCycleReport ? parseDateOnly(currentCycleReport.to) : getMonthEndDate(today)
+    const effectiveDate = clampDate(today, cycleStart, cycleEnd)
+    const currentWeekStart = clampDate(getStartOfWeek(effectiveDate), cycleStart, cycleEnd)
+    const currentWeekEnd = clampDate(getEndOfWeek(effectiveDate), cycleStart, cycleEnd)
+    const cycleBudget = currentCycleReport?.totalIncome ?? 0
+    const cycleSpent = payments.reduce(
+        (runningTotal, transaction) => runningTotal + getAmountSpent(transaction),
+        0,
+    )
+    const weekSpent = payments.reduce((runningTotal, transaction) => {
+        if (
+            transaction.bookingDate < formatDateOnly(currentWeekStart)
+            || transaction.bookingDate > formatDateOnly(effectiveDate)
+        ) {
+            return runningTotal
+        }
+
+        return runningTotal + getAmountSpent(transaction)
+    }, 0)
+    const cycleRemaining = cycleBudget - cycleSpent
+    const daysRemainingInCycle = getDaySpanInclusive(effectiveDate, cycleEnd)
+    const daysRemainingInWeek = getDaySpanInclusive(effectiveDate, currentWeekEnd)
+    const weekRemaining = daysRemainingInCycle === 0
+        ? cycleRemaining
+        : cycleRemaining * (daysRemainingInWeek / daysRemainingInCycle)
+    const weekAvailable = getWeeklyBudgetAllocation(cycleBudget, formatDateOnly(cycleStart), formatDateOnly(cycleEnd), effectiveDate)
+    const weekChartData = buildPeriodWeeks(cycleStart, cycleEnd, effectiveDate)
+        .map((week) => ({
+            ...week,
+            totalSpent: payments.reduce((runningTotal, transaction) => {
+                if (transaction.bookingDate < week.from || transaction.bookingDate > week.to) {
+                    return runningTotal
+                }
+
+                return runningTotal + getAmountSpent(transaction)
+            }, 0),
+        }))
+
+    return {
+        currentWeekLabel: buildWeekRangeLabel(currentWeekStart, currentWeekEnd),
+        cycleBudget,
+        cycleRemaining,
+        cycleSpent,
+        weekAvailable,
+        weekChartData,
+        weekRemaining,
+        weekSpent,
+    }
 }
 
 export { ALL_CATEGORIES_VALUE, SPENDING_GRANULARITY_OPTIONS }

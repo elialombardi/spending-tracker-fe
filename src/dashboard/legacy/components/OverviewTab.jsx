@@ -5,6 +5,7 @@ import ComparisonCyclesSection from './overview/ComparisonCyclesSection'
 import SpendingPaceSection from './overview/SpendingPaceSection'
 import CategoryTrendSection from './overview/CategoryTrendSection'
 import CategoryBreakdownSection from './overview/CategoryBreakdownSection'
+import CurrentMonthTrendsSection from './overview/CurrentMonthTrendsSection'
 import {
     ALL_CATEGORIES_VALUE,
     SPENDING_GRANULARITY_OPTIONS,
@@ -58,6 +59,11 @@ export default function OverviewTab({
         >
             <div className="layout">
                 <MetricsPanel cycleTransactions={cycleTransactions} monthlyReport={monthlyReport} />
+
+                <CurrentMonthTrendsSection
+                    cycleReport={monthlyReport}
+                    cycleTransactions={cycleTransactions}
+                />
 
                 <ComparisonCyclesSection
                     comparisonCycleReports={comparisonCycleReports}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { fetchJson, readError, API_BASE } from '../lib/api'
 import {
     CORRECTION_PAGE_SIZE,
@@ -49,6 +49,60 @@ function formatDateOnly(date) {
     const day = String(date.getUTCDate()).padStart(2, '0')
 
     return `${year}-${month}-${day}`
+}
+
+function getTodayDateOnly() {
+    const today = new Date()
+
+    return new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()))
+}
+
+function getCurrentCycleOption(cycleOptions, todayText) {
+    return cycleOptions.find((option) => option.from <= todayText) ?? null
+}
+
+function getCycleEndFromStart(cycleStart) {
+    const cycleStartDate = parseDateOnly(cycleStart)
+    const cycleEndDate = new Date(Date.UTC(
+        cycleStartDate.getUTCFullYear(),
+        cycleStartDate.getUTCMonth() + 1,
+        27,
+    ))
+
+    return {
+        from: cycleStart,
+        to: formatDateOnly(cycleEndDate),
+    }
+}
+
+async function fetchCurrentCycleData(cycleOptions, existingReports = []) {
+    const today = formatDateOnly(getTodayDateOnly())
+    const currentCycleOption = getCurrentCycleOption(cycleOptions, today)
+    const existingCurrentCycleReport = currentCycleOption
+        ? existingReports.find((report) => report.from === currentCycleOption.from) ?? null
+        : null
+    const currentCycleRange = currentCycleOption
+        ? getCycleEndFromStart(currentCycleOption.from)
+        : null
+
+    const [currentCycleReport, currentCycleTransactions] = await Promise.all([
+        currentCycleOption && !existingCurrentCycleReport
+            ? fetchJson(`/api/reports/cycle?cycleStart=${encodeURIComponent(currentCycleOption.from)}`)
+            : Promise.resolve(existingCurrentCycleReport),
+        currentCycleRange
+            ? fetchJson(`/api/transactions?direction=expense&from=${currentCycleRange.from}&to=${currentCycleRange.to}`)
+            : Promise.resolve([]),
+    ])
+
+    return {
+        currentCycleReport: currentCycleReport
+            ? {
+                ...currentCycleReport,
+                to: currentCycleRange?.to ?? currentCycleReport.to,
+            }
+            : null,
+        currentCycleTransactions,
+    }
 }
 
 function buildComparableCycleEnd(referenceCycle, comparedCycle) {
@@ -132,12 +186,16 @@ async function fetchDashboardData(selectedCycleStart) {
 
     const effectiveCycleStart = getEffectiveSelectedCycleStart(selectedCycleStart, cycleOptions)
     if (!effectiveCycleStart) {
+        const { currentCycleReport, currentCycleTransactions } = await fetchCurrentCycleData(cycleOptions)
+
         return {
             categories,
             categoryMappings,
             categorizedExpenses: [],
             comparisonCycleReports: [],
             comparisonCycleTransactions: [],
+            currentCycleReport,
+            currentCycleTransactions,
             cycleTransactions: [],
             cycleIncomeCategories,
             cycleOptions,
@@ -155,6 +213,10 @@ async function fetchDashboardData(selectedCycleStart) {
             fetchJson(`/api/reports/cycle?cycleStart=${encodeURIComponent(cycleStart)}`),
         ),
     )
+    const { currentCycleReport, currentCycleTransactions } = await fetchCurrentCycleData(
+        cycleOptions,
+        comparisonCycleReports,
+    )
     const monthlyReport = comparisonCycleReports.find((report) => report.from === effectiveCycleStart) ?? null
 
     if (!monthlyReport) {
@@ -164,6 +226,8 @@ async function fetchDashboardData(selectedCycleStart) {
             categorizedExpenses: [],
             comparisonCycleReports,
             comparisonCycleTransactions: [],
+            currentCycleReport,
+            currentCycleTransactions,
             cycleTransactions: [],
             cycleIncomeCategories,
             cycleOptions,
@@ -213,6 +277,8 @@ async function fetchDashboardData(selectedCycleStart) {
         categorizedExpenses: buildCategorizedExpenses(cycleTransactions),
         comparisonCycleReports,
         comparisonCycleTransactions,
+        currentCycleReport,
+        currentCycleTransactions,
         cycleTransactions,
         cycleIncomeCategories,
         cycleOptions,
@@ -242,6 +308,8 @@ export function useDashboard() {
     const [categoryMappings, setCategoryMappings] = useState([])
     const [comparisonCycleReports, setComparisonCycleReports] = useState([])
     const [comparisonCycleTransactions, setComparisonCycleTransactions] = useState([])
+    const [currentCycleReport, setCurrentCycleReport] = useState(null)
+    const [currentCycleTransactions, setCurrentCycleTransactions] = useState([])
     const [cycleTransactions, setCycleTransactions] = useState([])
     const [incomeTransactions, setIncomeTransactions] = useState([])
     const [monthlyReport, setMonthlyReport] = useState(null)
@@ -262,7 +330,7 @@ export function useDashboard() {
     const [toastMessage, setToastMessage] = useState('')
     const toastTimeoutRef = useRef(null)
 
-    function showToast(message) {
+    const showToast = useCallback((message) => {
         setToastMessage(message)
 
         if (toastTimeoutRef.current) {
@@ -272,17 +340,19 @@ export function useDashboard() {
         toastTimeoutRef.current = window.setTimeout(() => {
             setToastMessage('')
         }, 3200)
-    }
+    }, [])
 
-    function handleError(error) {
+    const handleError = useCallback((error) => {
         console.error(error)
         showToast(error instanceof Error ? error.message : 'Something went wrong.')
-    }
+    }, [showToast])
 
-    function applyDashboardData(data) {
+    const applyDashboardData = useCallback((data) => {
         setCategories(data.categories)
         setComparisonCycleReports(data.comparisonCycleReports)
         setComparisonCycleTransactions(data.comparisonCycleTransactions)
+        setCurrentCycleReport(data.currentCycleReport)
+        setCurrentCycleTransactions(data.currentCycleTransactions)
         setCycleOptions(data.cycleOptions)
         setCycleIncomeCategories(data.cycleIncomeCategories)
         setCategoryMappings(data.categoryMappings)
@@ -304,7 +374,7 @@ export function useDashboard() {
         setMappingPage((currentPage) =>
             clampPage(currentPage, data.categoryMappings.length, mappingPageSize),
         )
-    }
+    }, [categorizedPageSize, incomePageSize, mappingPageSize, reviewPageSize, selectedCycleStart])
 
     function setReviewPageSize(pageSize) {
         setReviewPageSizeState(pageSize)
@@ -566,7 +636,7 @@ export function useDashboard() {
         return () => {
             cancelled = true
         }
-    }, [selectedCycleStart])
+    }, [selectedCycleStart, applyDashboardData, handleError])
 
     useEffect(
         () => () => {
@@ -586,6 +656,8 @@ export function useDashboard() {
         categorizeTransaction,
         comparisonCycleReports,
         comparisonCycleTransactions,
+        currentCycleReport,
+        currentCycleTransactions,
         cycleTransactions,
         cycleIncomeCategories,
         cycleOptions,
