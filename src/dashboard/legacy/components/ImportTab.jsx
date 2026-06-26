@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import Box from '@mui/material/Box'
-import Grid from '@mui/material/Grid'
+// replaced Grid with responsive Box-based CSS grid to avoid forwarding unknown props
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
@@ -206,8 +206,8 @@ export default function ImportTab({
             hidden={!active}
         >
             <Box sx={{ p: 2 }}>
-                <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+                    <Box>
                         <Paper sx={{ p: 2 }} elevation={0} className="upload-panel">
                             <Box sx={{ mb: 2 }}>
                                 <Typography variant="overline">Import</Typography>
@@ -242,9 +242,9 @@ export default function ImportTab({
 
                             <Box sx={{ mt: 2 }}>{renderImportResult(importResult)}</Box>
                         </Paper>
-                    </Grid>
+                    </Box>
 
-                    <Grid item xs={12} md={6}>
+                    <Box>
                         <Paper sx={{ p: 2 }} elevation={0} className="management-panel">
                             <Box sx={{ mb: 2 }}>
                                 <Typography variant="overline">Manage imports</Typography>
@@ -484,8 +484,8 @@ export default function ImportTab({
                                 </Box>
                             </Box>
                         </Paper>
-                    </Grid>
-                </Grid>
+                    </Box>
+                </Box>
             </Box>
         </section>
     )

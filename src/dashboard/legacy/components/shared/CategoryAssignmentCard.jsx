@@ -28,11 +28,13 @@ export default function CategoryAssignmentCard({ categories, context, isBusy, on
     const [category, setCategory] = useState(getDefaultCategory(transaction, context))
     const [ruleMode, setRuleMode] = useState(getDefaultRuleMode(transaction, context))
     const [excludeFromCalculations, setExcludeFromCalculations] = useState(Boolean(transaction.excludeFromCalculations))
+    const [isMonthlyRecurring, setIsMonthlyRecurring] = useState(Boolean(transaction.isMonthlyRecurring))
 
     useEffect(() => {
         setCategory(getDefaultCategory(transaction, context))
         setRuleMode(getDefaultRuleMode(transaction, context))
         setExcludeFromCalculations(Boolean(transaction.excludeFromCalculations))
+        setIsMonthlyRecurring(Boolean(transaction.isMonthlyRecurring))
     }, [context, transaction])
 
     async function handleSubmit(event) {
@@ -43,6 +45,7 @@ export default function CategoryAssignmentCard({ categories, context, isBusy, on
             formContext: context,
             ruleMode,
             excludeFromCalculations,
+            isMonthlyRecurring,
         })
     }
 
@@ -77,6 +80,7 @@ export default function CategoryAssignmentCard({ categories, context, isBusy, on
                         <Typography variant="caption">{formatDate(transaction.bookingDate)}</Typography>
                         <Typography variant="caption">{transaction.merchantKey}</Typography>
                         {context === 'edit' ? <Typography variant="caption">{transaction.category || 'Uncategorized'}</Typography> : null}
+                        {transaction.isMonthlyRecurring ? <Typography variant="caption">Monthly recurring</Typography> : null}
                     </Box>
                 </Box>
 
@@ -124,6 +128,17 @@ export default function CategoryAssignmentCard({ categories, context, isBusy, on
                         />
                     }
                     label="Exclude from calculations"
+                />
+
+                <FormControlLabel
+                    control={
+                        <Checkbox
+                            checked={isMonthlyRecurring}
+                            onChange={(event) => setIsMonthlyRecurring(event.target.checked)}
+                            disabled={isBusy}
+                        />
+                    }
+                    label="Monthly recurring"
                 />
 
                 <Button variant="contained" type="submit" disabled={isBusy}>

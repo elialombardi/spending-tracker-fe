@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import Autocomplete from '@mui/material/Autocomplete'
+import TextField from '@mui/material/TextField'
 
 function buildCategoryMeta(category) {
     const parts = []
@@ -14,136 +15,49 @@ function buildCategoryMeta(category) {
     return parts.join(' • ')
 }
 
-function matchesCategory(categoryName, query) {
-    if (!query) {
-        return true
-    }
-
-    return categoryName.toLowerCase().includes(query)
-}
-
-export default function CategoryPicker({ categories, disabled, name, placeholder, value, onChange }) {
-    const [isOpen, setIsOpen] = useState(false)
-    const containerRef = useRef(null)
-    const normalizedValue = value.trim().toLowerCase()
-    const filteredCategories = categories
-        .filter((category) => matchesCategory(category.name, normalizedValue))
-        .slice(0, 8)
-    const hasExactMatch = categories.some((category) => category.name.toLowerCase() === normalizedValue)
-    const canCreateCategory = normalizedValue.length > 0 && !hasExactMatch
-
-    useEffect(() => {
-        if (!isOpen) {
-            return undefined
-        }
-
-        function handlePointerDown(event) {
-            if (!containerRef.current?.contains(event.target)) {
-                setIsOpen(false)
-            }
-        }
-
-        document.addEventListener('pointerdown', handlePointerDown)
-        return () => document.removeEventListener('pointerdown', handlePointerDown)
-    }, [isOpen])
-
-    function selectCategory(categoryName) {
-        onChange(categoryName)
-        setIsOpen(false)
-    }
-
-    function handleInputChange(event) {
-        onChange(event.target.value)
-        setIsOpen(true)
-    }
-
-    function handleInputKeyDown(event) {
-        if (event.key === 'Escape') {
-            setIsOpen(false)
-            return
-        }
-
-        if (event.key === 'ArrowDown') {
-            event.preventDefault()
-            setIsOpen(true)
-        }
-    }
+export default function CategoryPicker({ categories = [], disabled, name, placeholder, value = '', onChange }) {
+    const optionNames = categories.map((c) => c.name)
 
     return (
-        <div
-            ref={containerRef}
-            className={`category-picker${isOpen ? ' is-open' : ''}${disabled ? ' is-disabled' : ''}`}
-        >
-            <div className="category-picker-field">
-                <input
-                    className="category-picker-input"
-                    type="text"
-                    name={name}
-                    placeholder={placeholder}
-                    value={value}
-                    autoComplete="off"
-                    onChange={handleInputChange}
-                    onFocus={() => setIsOpen(true)}
-                    onKeyDown={handleInputKeyDown}
-                    disabled={disabled}
-                />
+        <div className={`category-picker${disabled ? ' is-disabled' : ''}`}>
+            <Autocomplete
+                freeSolo
+                disableClearable
+                disabled={disabled}
+                options={optionNames}
+                value={value || ''}
+                onChange={(event, newValue) => {
+                    if (newValue == null) {
+                        onChange('')
+                    } else {
+                        onChange(newValue)
+                    }
+                }}
+                onInputChange={(event, newInputValue) => {
+                    onChange(newInputValue)
+                }}
+                renderInput={(params) => (
+                    <TextField
+                        {...params}
+                        name={name}
+                        placeholder={placeholder}
+                        variant="standard"
+                    />
+                )}
+                renderOption={(props, option) => {
+                    const cat = categories.find((c) => c.name === option)
+                    const meta = cat ? buildCategoryMeta(cat) : ''
 
-                <button
-                    className="category-picker-toggle"
-                    type="button"
-                    aria-label={isOpen ? 'Hide categories' : 'Show categories'}
-                    onClick={() => setIsOpen((currentValue) => !currentValue)}
-                    disabled={disabled}
-                >
-                    <span className={`category-picker-chevron${isOpen ? ' is-open' : ''}`} aria-hidden="true">
-                        ▾
-                    </span>
-                </button>
-            </div>
-
-            {isOpen && !disabled ? (
-                <div className="category-picker-panel">
-                    {filteredCategories.map((category) => {
-                        const meta = buildCategoryMeta(category)
-                        const isSelected = category.name === value.trim()
-
-                        return (
-                            <button
-                                key={category.name}
-                                className={`category-picker-option${isSelected ? ' is-selected' : ''}`}
-                                type="button"
-                                onClick={() => selectCategory(category.name)}
-                            >
-                                <span className="category-picker-option-copy">
-                                    <span className="category-picker-option-title">{category.name}</span>
-                                    {meta ? <span className="category-picker-option-meta">{meta}</span> : null}
-                                </span>
-                                {isSelected ? <span className="category-picker-option-state">Selected</span> : null}
-                            </button>
-                        )
-                    })}
-
-                    {canCreateCategory ? (
-                        <button
-                            className="category-picker-option category-picker-option-create"
-                            type="button"
-                            onClick={() => selectCategory(value.trim())}
-                        >
+                    return (
+                        <li {...props} key={option} className="category-picker-option">
                             <span className="category-picker-option-copy">
-                                <span className="category-picker-option-title">Use “{value.trim()}”</span>
-                                <span className="category-picker-option-meta">Create a new category name</span>
+                                <span className="category-picker-option-title">{option}</span>
+                                {meta ? <span className="category-picker-option-meta">{meta}</span> : null}
                             </span>
-                            <span className="category-picker-option-state">New</span>
-                        </button>
-                    ) : null}
-
-                    {filteredCategories.length === 0 && !canCreateCategory ? (
-                        <div className="category-picker-empty">
-                            No matching categories yet. Keep typing to create one.
-                        </div>
-                    ) : null}
-                </div>
-            ) : null}
+                        </li>
+                    )
+                }}
+            />
         </div>
     )
 }

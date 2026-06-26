@@ -43,8 +43,8 @@ export default function MappingCard({ categories, isBusy, mapping, onDelete, onS
             className="review-card"
             sx={{ p: 2, mb: 2, bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 2 }}
         >
-            <Grid container alignItems="center" spacing={2} sx={{ mb: 1 }}>
-                <Grid item xs>
+            <Grid container spacing={2} sx={{ mb: 1, alignItems: 'center' }}>
+                <Grid sx={{ flex: 1 }}>
                     <Typography variant="subtitle1" component="h3">
                         {mapping.merchantKey}
                     </Typography>
@@ -59,7 +59,7 @@ export default function MappingCard({ categories, isBusy, mapping, onDelete, onS
                     </Stack>
                 </Grid>
 
-                <Grid item>
+                <Grid>
                     <Typography variant="caption" color={isAlwaysReview ? 'warning.main' : 'text.secondary'}>
                         {isAlwaysReview ? 'Always ask for this merchant' : 'Auto-apply mapping'}
                     </Typography>
@@ -81,7 +81,6 @@ export default function MappingCard({ categories, isBusy, mapping, onDelete, onS
                                 size="small"
                                 variant="outlined"
                                 placeholder={isAlwaysReview ? 'No fixed category in always-ask mode' : 'Groceries, Transport, Salary...'}
-                                inputProps={{ ...params.inputProps }}
                             />
                         )}
                     />

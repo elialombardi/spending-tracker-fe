@@ -374,7 +374,14 @@ export function useDashboard() {
         }
     }
 
-    async function categorizeTransaction({ transactionId, category, ruleMode, formContext, excludeFromCalculations = false }) {
+    async function categorizeTransaction({
+        transactionId,
+        category,
+        ruleMode,
+        formContext,
+        excludeFromCalculations = false,
+        isMonthlyRecurring = false,
+    }) {
         const normalizedCategory = category.trim()
 
         if (!normalizedCategory) {
@@ -395,6 +402,7 @@ export function useDashboard() {
                     saveRule: ruleMode !== 'one-off',
                     ruleBehavior: ruleMode === 'always-review' ? 'AlwaysReview' : 'AutoApply',
                     excludeFromCalculations: Boolean(excludeFromCalculations),
+                    isMonthlyRecurring: Boolean(isMonthlyRecurring),
                 }),
             })
 

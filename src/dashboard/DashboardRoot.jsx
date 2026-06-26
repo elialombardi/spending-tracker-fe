@@ -59,18 +59,96 @@ function DashboardRoot() {
                             display: 'flex',
                             gap: '12px',
                             alignItems: 'stretch',
-                            height: '100%'
+                            height: '100%',
+                            width: '100%'
+                        },
+                        '.spending-comparison-chart-shell': {
+                            flex: '2 1 0',
+                            minWidth: 220,
+                            display: 'flex',
+                            alignItems: 'stretch',
+                        },
+                        '.spending-comparison-chart-frame': {
+                            flex: '1 1 0',
+                            minHeight: '320px',
+                            height: '320px',
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'stretch',
+                        },
+                        '.spending-comparison-chart-frame > div': {
+                            height: '100% !important',
+                            minHeight: '320px',
+                        },
+                        '.spending-comparison-series-grid': {
+                            flex: '0 0 360px',
+                            maxWidth: '420px',
+                            overflow: 'auto',
+                            padding: '8px',
+                            boxSizing: 'border-box',
                         },
                         '.comparison-pie-card, .spending-series-card': {
                             flex: '1 1 0',
                             minWidth: 0,
-                            padding: '12px',
-                            background: 'rgba(255,255,255,0.02) !important'
+                            padding: '14px',
+                            marginBottom: '10px',
+                            borderRadius: 8,
+                            background: 'rgba(255,255,255,0.04) !important',
+                            color: 'rgba(255,255,255,0.92)'
+                        },
+                        '.spending-series-card .spending-series-copy strong': {
+                            fontSize: '15px',
+                            color: 'rgba(255,255,255,0.95)'
+                        },
+                        '.spending-series-card .spending-series-copy span': {
+                            color: 'rgba(255,255,255,0.78)',
+                            fontSize: '13px'
+                        },
+                        '.spending-series-meta span': {
+                            display: 'block',
+                            color: 'rgba(255,255,255,0.82)',
+                            marginTop: '8px',
                         },
                         '.comparison-pie-visual': {
                             borderRadius: 8,
-                            height: '120px',
+                            height: '160px',
                             marginBottom: 8,
+                            position: 'relative',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            overflow: 'visible',
+                        },
+                        '.comparison-pie-visual svg': {
+                            width: '160px',
+                            height: '160px',
+                            display: 'block',
+                        },
+                        '.comparison-pie-center': {
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            textAlign: 'center',
+                            pointerEvents: 'none',
+                            width: '72%',
+                            maxWidth: '120px',
+                            whiteSpace: 'normal',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                        },
+                        '.comparison-pie-center .metric-label': {
+                            color: 'rgba(255,255,255,0.75)',
+                            fontSize: '12px',
+                            display: 'block',
+                            marginBottom: '4px',
+                        },
+                        '.comparison-pie-center strong': {
+                            color: 'rgba(255,255,255,0.96)',
+                            fontSize: '16px',
+                            fontWeight: 700,
+                            display: 'block',
+                            lineHeight: 1.1,
                         },
                         '.comparison-pie-legend .comparison-pie-swatch': {
                             width: 14,
@@ -79,8 +157,26 @@ function DashboardRoot() {
                             display: 'inline-block',
                             marginRight: 8,
                         },
-                        '.comparison-pie-legend-copy strong': { color: 'rgba(255,255,255,0.95)' },
-                        '.comparison-pie-legend-copy span': { color: 'rgba(255,255,255,0.7)' },
+                        '.comparison-pie-legend': {
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '6px',
+                        },
+                        '.comparison-pie-legend-item': {
+                            display: 'flex',
+                            gap: '12px',
+                            alignItems: 'flex-start',
+                            marginBottom: 4,
+                        },
+                        '.comparison-pie-legend-copy': {
+                            display: 'flex',
+                            flexDirection: 'column',
+                            lineHeight: 1.1,
+                            minWidth: 0,
+                            wordBreak: 'break-word',
+                        },
+                        '.comparison-pie-legend-copy strong': { color: 'rgba(255,255,255,0.95)', display: 'block', fontSize: '15px', fontWeight: 700 },
+                        '.comparison-pie-legend-copy span': { color: 'rgba(255,255,255,0.7)', display: 'block', marginTop: 2, fontSize: '13px' },
                         '.button': {
                             border: 'none',
                             padding: '8px 14px',
@@ -136,8 +232,17 @@ function DashboardRoot() {
         );
 
         return () => {
-            root.unmount();
-            host.removeChild(mountNode);
+            // Unmount asynchronously to avoid "synchronously unmount a root while React was already rendering" warning
+            Promise.resolve().then(() => {
+                try {
+                    root.unmount();
+                } catch (err) {
+                    // ignore unmount errors during teardown
+                }
+                if (mountNode.parentNode === host) {
+                    host.removeChild(mountNode);
+                }
+            });
         };
     }, []);
 

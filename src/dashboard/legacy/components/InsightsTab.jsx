@@ -59,6 +59,7 @@ export default function InsightsTab({ active, categories, monthlyReport }) {
                                         <Typography variant="caption">{formatDate(expense.bookingDate)}</Typography>
                                         <Typography variant="caption">{expense.category || 'Uncategorized'}</Typography>
                                         <Typography variant="caption">{expense.merchantKey}</Typography>
+                                        {expense.isMonthlyRecurring ? <Typography variant="caption">Monthly recurring</Typography> : null}
                                     </Box>
                                 </Paper>
                             ))}
