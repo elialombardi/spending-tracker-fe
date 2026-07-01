@@ -28,34 +28,33 @@ export default function CategoryBreakdown({ monthlyReport, previousCycleComparis
 
                         return (
                             <article key={category.category} className="category-row">
-                                <header>
-                                    <h3>{category.category}</h3>
-                                    <span className={`money-pill ${currentCostTone}`.trim()}>
+                                <div className="category-bar" style={{ width: `${width}%` }}></div>
+                                <div>
+                                    <span className={`money-pill ${currentCostTone}`.trim()} style={{ marginLeft: 8 }}>
                                         {formatMoney(category.totalSpent)}
                                     </span>
-                                </header>
-                                <div className="category-bar-track">
-                                    <div className="category-bar-fill" style={{ width: `${width}%` }}></div>
+                                    <strong>{category.category}</strong>
+                                    {
+                                        previousCycleComparison ? (
+                                            <span> (prev. {formatMoney(previousCycleAmount)})</span>
+                                        ) : null
+                                    }
                                 </div>
-                                <div className="merchant-meta">
+
+                                <div>
+                                </div>
+                                <div className="merchant-meta" style={{ fontSize: "0.875rem" }}>
                                     <span>{formatPercent(category.shareOfSpent)} of spending</span>
-                                    <span>{category.transactions} transactions</span>
+                                    <span> - {category.transactions} transactions</span>
                                 </div>
-                                {previousCycleComparison ? (
-                                    <div className="merchant-meta">
-                                        <span>
-                                            Previous cycle through {formatDate(previousCycleComparison.comparableTo)}:{' '}
-                                            {formatMoney(previousCycleAmount)}
-                                        </span>
-                                    </div>
-                                ) : null}
                             </article>
                         )
                     })}
-                </div>
+                </div >
             ) : (
                 <div style={{ padding: 16 }}>No expenses in the selected income cycle yet.</div>
-            )}
+            )
+            }
         </>
     )
 }

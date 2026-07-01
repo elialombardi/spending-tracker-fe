@@ -8,9 +8,6 @@ import { NavLink, useLocation } from 'react-router-dom'
 function NavBar() {
     const loc = useLocation()
     const path = loc.pathname
-    const subtitle = path === '/dashboard'
-        ? 'Location Map • Merged dashboard workspace'
-        : 'Location Map • Manage tags and locations'
 
     return (
         <AppBar position="static" color="transparent" elevation={0} sx={{ mb: 2 }}>
@@ -26,7 +23,6 @@ function NavBar() {
                         Dashboard
                     </Button>
                 </Box>
-                <Typography variant="body2" color="text.secondary">{subtitle}</Typography>
             </Toolbar>
         </AppBar>
     );

@@ -5,9 +5,9 @@ import Typography from '@mui/material/Typography'
 import EmptyState from './shared/EmptyState'
 import { formatMoney } from '../lib/formatters'
 
-function buildNonRecurringSpend(cycleTransactions) {
+function buildRecurringSpend(cycleTransactions) {
     return cycleTransactions.reduce((total, transaction) => {
-        if (transaction.direction !== 'expense' || transaction.isMonthlyRecurring) {
+        if (transaction.direction !== 'expense' || !transaction.isMonthlyRecurring) {
             return total
         }
 
@@ -16,46 +16,24 @@ function buildNonRecurringSpend(cycleTransactions) {
 }
 
 export default function MetricsPanel({ cycleTransactions, monthlyReport }) {
-    const nonRecurringSpend = buildNonRecurringSpend(cycleTransactions)
+    const nonRecurringSpend = buildRecurringSpend(cycleTransactions)
     const metricCards = monthlyReport
         ? [
-            {
-                label: 'Spent',
-                value: formatMoney(monthlyReport.totalSpent),
-                tone: 'accent',
-            },
-            {
-                label: 'Income',
-                value: formatMoney(monthlyReport.totalIncome),
-                tone: 'secondary',
-            },
             {
                 label: 'Uncategorized',
                 value: formatMoney(monthlyReport.uncategorizedSpent),
                 tone: 'accent',
             },
             {
-                label: 'Non-recurring spend',
+                label: 'Recurring spend',
                 value: formatMoney(nonRecurringSpend),
                 tone: 'secondary',
-            },
-            {
-                label: 'Transactions',
-                value: String(monthlyReport.totalTransactions),
-                tone: '',
-            },
+            }
         ]
         : []
 
     return (
         <section className="panel metrics-panel">
-            <div className="section-heading">
-                <div>
-                    <p className="eyebrow">Snapshot</p>
-                    <h2>Current cycle at a glance</h2>
-                </div>
-            </div>
-
             {monthlyReport ? (
                 <Box className="metric-grid" sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(5, 1fr)' } }}>
                     {metricCards.map((metric) => (

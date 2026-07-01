@@ -41,13 +41,6 @@ export default function CycleItemsPanel({ cycleTransactions }) {
     if (cycleTransactions.length === 0) {
         return (
             <section className="panel cycle-items-panel">
-                <div className="section-heading">
-                    <div>
-                        <p className="eyebrow">Line items</p>
-                        <h2>Every transaction in this cycle</h2>
-                    </div>
-                    <p className="section-note">Incoming and outgoing items, ordered newest first.</p>
-                </div>
                 <EmptyState message="No transactions in the selected cycle yet." />
             </section>
         )
@@ -55,14 +48,6 @@ export default function CycleItemsPanel({ cycleTransactions }) {
 
     return (
         <section className="panel cycle-items-panel">
-            <div className="section-heading">
-                <div>
-                    <p className="eyebrow">Line items</p>
-                    <h2>Every transaction in this cycle</h2>
-                </div>
-                <p className="section-note">Incoming and outgoing items, ordered newest first.</p>
-            </div>
-
             <div className="expense-list">
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
                     <Autocomplete
@@ -87,7 +72,7 @@ export default function CycleItemsPanel({ cycleTransactions }) {
                                 <h3>{transaction.description}</h3>
                                 <div className="expense-meta">
                                     <span>{formatDate(transaction.bookingDate)}</span>
-                                    <span>{transaction.merchantKey}</span>
+                                    <span> {transaction.merchantKey}</span>
                                 </div>
                             </div>
                             <span className="money-pill">{formatSignedMoney(transaction.amount)}</span>
@@ -95,7 +80,7 @@ export default function CycleItemsPanel({ cycleTransactions }) {
 
                         <div className="merchant-meta">
                             <span>{transaction.direction === 'income' ? 'Income' : 'Expense'}</span>
-                            <span>{transaction.category || 'Uncategorized'}</span>
+                            <span> {transaction.category || 'Uncategorized'}</span>
                             {transaction.isMonthlyRecurring ? <span>Monthly recurring</span> : null}
                             {transaction.needsReview ? <span>Needs review</span> : null}
                         </div>

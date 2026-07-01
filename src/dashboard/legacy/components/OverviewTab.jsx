@@ -58,12 +58,12 @@ export default function OverviewTab({
             hidden={!active}
         >
             <div className="layout">
-                <MetricsPanel cycleTransactions={cycleTransactions} monthlyReport={monthlyReport} />
 
                 <CurrentMonthTrendsSection
                     cycleReport={monthlyReport}
                     cycleTransactions={cycleTransactions}
                 />
+                <MetricsPanel cycleTransactions={cycleTransactions} monthlyReport={monthlyReport} />
 
                 <ComparisonCyclesSection
                     comparisonCycleReports={comparisonCycleReports}

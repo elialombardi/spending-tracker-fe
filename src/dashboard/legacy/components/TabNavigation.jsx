@@ -28,12 +28,9 @@ export default function TabNavigation({ activeTab, onTabChange, reviewCount }) {
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                     <strong>{tab.title}</strong>
                                     {tab.id === 'review' && reviewCount > 0 ? (
-                                        <Badge badgeContent={reviewCount} color="primary" />
+                                        <Badge badgeContent={reviewCount} color="primary" sx={{ ml: 1 }} />
                                     ) : null}
                                 </Box>
-                                <Typography variant="caption" color="text.secondary">
-                                    {tab.note}
-                                </Typography>
                             </Box>
                         }
                         aria-controls={`page-${tab.id}`}

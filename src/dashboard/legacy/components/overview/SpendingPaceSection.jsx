@@ -18,15 +18,6 @@ export default function SpendingPaceSection({
     return (
         <section className="panel spending-comparison-panel">
             <div className="section-heading">
-                <div>
-                    <p className="eyebrow">Spending pace</p>
-                    <h2>Compare spend inside each cycle</h2>
-                    <p className="section-note spending-comparison-note">
-                        Outgoing spending is shown across the full cycle timeline. If the selected cycle is still in
-                        progress, its line stops at the latest recorded bucket instead of dropping future periods to
-                        zero.
-                    </p>
-                </div>
 
                 <FormControl size="small" sx={{ minWidth: 160 }}>
                     <InputLabel id="spending-granularity-label">Group by</InputLabel>

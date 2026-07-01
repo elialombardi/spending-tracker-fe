@@ -203,7 +203,6 @@ function buildLineChartPoints(values, bucketCount, maxValue) {
 }
 
 function getAmountSpent(transaction) {
-    console.log('Transaction amount:', transaction.amount, transaction) // Debugging line
     return Math.abs(transaction.amount)
 }
 
@@ -248,10 +247,12 @@ function clampDate(currentDate, startDate, endDate) {
 }
 
 function buildWeekRangeLabel(startDate, endDate) {
+    const startMonth = String(startDate.getUTCMonth() + 1).padStart(2, '0')
     const startDay = String(startDate.getUTCDate()).padStart(2, '0')
+    const endMonth = String(endDate.getUTCMonth() + 1).padStart(2, '0')
     const endDay = String(endDate.getUTCDate()).padStart(2, '0')
 
-    return `${startDay}-${endDay}`
+    return `${startDay}/${startMonth} - ${endDay}/${endMonth}`
 }
 
 function buildPeriodWeeks(periodStart, periodEnd, today) {
@@ -421,13 +422,18 @@ export function buildComparisonTrendData(comparisonCycleReports, selectedCompari
 export function getWeeklyBudgetAllocation(cycleTotalIncome, cycleStart, cycleEnd, today) {
     const cycleStartDate = parseDateOnly(cycleStart)
     const cycleEndDate = parseDateOnly(cycleEnd)
-    const effectiveDate = clampDate(today, cycleStartDate, cycleEndDate)
-    const daysRemainingInCycle = getDaySpanInclusive(effectiveDate, cycleEndDate)
-    const daysRemainingInWeek = getDaySpanInclusive(effectiveDate, getEndOfWeek(effectiveDate))
 
-    return daysRemainingInCycle === 0
-        ? cycleTotalIncome
-        : (cycleTotalIncome * daysRemainingInWeek) / daysRemainingInCycle
+    const weeksInCycle = getBucketCount(cycleStartDate, cycleEndDate, 'week')
+
+    return weeksInCycle === 0 ? 0 : cycleTotalIncome / weeksInCycle
+
+    // const effectiveDate = clampDate(today, cycleStartDate, cycleEndDate)
+    // const daysRemainingInCycle = getDaySpanInclusive(effectiveDate, cycleEndDate)
+    // const daysRemainingInWeek = getDaySpanInclusive(effectiveDate, getEndOfWeek(effectiveDate))
+
+    // return daysRemainingInCycle === 0
+    //     ? cycleTotalIncome
+    //     : (cycleTotalIncome * daysRemainingInWeek) / daysRemainingInCycle
 }
 
 export function buildCurrentCycleTrendData({ currentCycleReport, currentCycleTransactions }) {
@@ -459,12 +465,22 @@ export function buildCurrentCycleTrendData({ currentCycleReport, currentCycleTra
     const weekRemaining = daysRemainingInCycle === 0
         ? cycleRemaining
         : cycleRemaining * (daysRemainingInWeek / daysRemainingInCycle)
-    const weekAvailable = getWeeklyBudgetAllocation(cycleBudget, formatDateOnly(cycleStart), formatDateOnly(cycleEnd), effectiveDate)
+    const cycleBudgetWithoutMontylyRecurring = currentCycleTransactions.reduce(
+        (runningTotal, transaction) => {
+            if (transaction.isMonthlyRecurring) {
+                return runningTotal - getAmountSpent(transaction)
+            }
+            return runningTotal
+        },
+        cycleBudget,
+    )
+    const weekAvailable = getWeeklyBudgetAllocation(cycleBudgetWithoutMontylyRecurring, formatDateOnly(cycleStart), formatDateOnly(cycleEnd), effectiveDate)
     const weekChartData = buildPeriodWeeks(cycleStart, cycleEnd, effectiveDate)
         .map((week) => ({
             ...week,
+            availableBudget: weekAvailable,
             totalSpent: payments.reduce((runningTotal, transaction) => {
-                if (transaction.bookingDate < week.from || transaction.bookingDate > week.to) {
+                if (transaction.isMonthlyRecurring || transaction.bookingDate < week.from || transaction.bookingDate > week.to) {
                     return runningTotal
                 }
 

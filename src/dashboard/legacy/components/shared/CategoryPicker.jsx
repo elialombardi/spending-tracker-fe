@@ -52,7 +52,6 @@ export default function CategoryPicker({ categories = [], disabled, name, placeh
                         <li {...props} key={option} className="category-picker-option">
                             <span className="category-picker-option-copy">
                                 <span className="category-picker-option-title">{option}</span>
-                                {meta ? <span className="category-picker-option-meta">{meta}</span> : null}
                             </span>
                         </li>
                     )

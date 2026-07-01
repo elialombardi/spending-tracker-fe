@@ -10,7 +10,6 @@ export default function CategoryBreakdownSection({
         <section className="panel categories-panel">
             <div className="section-heading">
                 <div>
-                    <p className="eyebrow">Breakdown</p>
                     <h2>Where the money is going</h2>
                 </div>
                 {previousCycleComparison ? (

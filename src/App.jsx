@@ -162,9 +162,6 @@ function App() {
   return (
     <Container maxWidth="lg" sx={{ py: 2 }}>
       <NavBar />
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="h4" component="h1">{pageTitle}</Typography>
-      </Box>
       <Box>
         <Suspense fallback={routeFallback}>
           <Routes>

@@ -229,6 +229,19 @@ function DashboardRoot() {
                             borderRadius: 9999,
                             display: 'inline-block',
                         },
+                        '.category-bar-track': {
+                            width: '100%',
+                            height: 10,
+                            borderRadius: 9999,
+                            background: 'rgba(255,255,255,0.08)',
+                            overflow: 'hidden',
+                            marginTop: 10,
+                        },
+                        '.category-bar-fill-bg': {
+                            height: '100%',
+                            borderRadius: 'inherit',
+                            background: 'linear-gradient(90deg, rgba(25,118,210,0.95) 0%, rgba(100,181,246,0.9) 100%)',
+                        },
                         '.upload-dropzone': {
                             border: '1px dashed rgba(255,255,255,0.06)',
                             borderRadius: 12,
