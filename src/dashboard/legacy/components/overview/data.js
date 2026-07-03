@@ -422,12 +422,16 @@ export function buildComparisonTrendData(comparisonCycleReports, selectedCompari
 export function getWeeklyBudgetAllocation(cycleTotalIncome, cycleStart, cycleEnd, today) {
     const cycleStartDate = parseDateOnly(cycleStart)
     const cycleEndDate = parseDateOnly(cycleEnd)
+    const effectiveDate = clampDate(
+        typeof today === 'string' ? parseDateOnly(today) : today,
+        cycleStartDate,
+        cycleEndDate,
+    )
 
-    const weeksInCycle = getBucketCount(cycleStartDate, cycleEndDate, 'week')
+    const weeksInCycle = buildPeriodWeeks(cycleStartDate, cycleEndDate, effectiveDate).length
 
     return weeksInCycle === 0 ? 0 : cycleTotalIncome / weeksInCycle
 
-    // const effectiveDate = clampDate(today, cycleStartDate, cycleEndDate)
     // const daysRemainingInCycle = getDaySpanInclusive(effectiveDate, cycleEndDate)
     // const daysRemainingInWeek = getDaySpanInclusive(effectiveDate, getEndOfWeek(effectiveDate))
 
@@ -441,6 +445,7 @@ export function buildCurrentCycleTrendData({ currentCycleReport, currentCycleTra
     const today = getTodayDateOnly()
     const cycleStart = currentCycleReport ? parseDateOnly(currentCycleReport.from) : getMonthStartDate(today)
     const cycleEnd = currentCycleReport ? parseDateOnly(currentCycleReport.to) : getMonthEndDate(today)
+    const isCurrentCycle = today >= cycleStart && today <= cycleEnd
     const effectiveDate = clampDate(today, cycleStart, cycleEnd)
     const currentWeekStart = clampDate(getStartOfWeek(effectiveDate), cycleStart, cycleEnd)
     const currentWeekEnd = clampDate(getEndOfWeek(effectiveDate), cycleStart, cycleEnd)
@@ -451,7 +456,8 @@ export function buildCurrentCycleTrendData({ currentCycleReport, currentCycleTra
     )
     const weekSpent = payments.reduce((runningTotal, transaction) => {
         if (
-            transaction.bookingDate < formatDateOnly(currentWeekStart)
+            transaction.isMonthlyRecurring
+            || transaction.bookingDate < formatDateOnly(currentWeekStart)
             || transaction.bookingDate > formatDateOnly(effectiveDate)
         ) {
             return runningTotal
@@ -460,11 +466,6 @@ export function buildCurrentCycleTrendData({ currentCycleReport, currentCycleTra
         return runningTotal + getAmountSpent(transaction)
     }, 0)
     const cycleRemaining = cycleBudget - cycleSpent
-    const daysRemainingInCycle = getDaySpanInclusive(effectiveDate, cycleEnd)
-    const daysRemainingInWeek = getDaySpanInclusive(effectiveDate, currentWeekEnd)
-    const weekRemaining = daysRemainingInCycle === 0
-        ? cycleRemaining
-        : cycleRemaining * (daysRemainingInWeek / daysRemainingInCycle)
     const cycleBudgetWithoutMontylyRecurring = currentCycleTransactions.reduce(
         (runningTotal, transaction) => {
             if (transaction.isMonthlyRecurring) {
@@ -475,22 +476,31 @@ export function buildCurrentCycleTrendData({ currentCycleReport, currentCycleTra
         cycleBudget,
     )
     const weekAvailable = getWeeklyBudgetAllocation(cycleBudgetWithoutMontylyRecurring, formatDateOnly(cycleStart), formatDateOnly(cycleEnd), effectiveDate)
+    const weekRemaining = weekAvailable - weekSpent
     const weekChartData = buildPeriodWeeks(cycleStart, cycleEnd, effectiveDate)
-        .map((week) => ({
-            ...week,
-            availableBudget: weekAvailable,
-            totalSpent: payments.reduce((runningTotal, transaction) => {
-                if (transaction.isMonthlyRecurring || transaction.bookingDate < week.from || transaction.bookingDate > week.to) {
-                    return runningTotal
-                }
+        .map((week) => {
+            const transactions = payments.filter((transaction) => (
+                !transaction.isMonthlyRecurring
+                && transaction.bookingDate >= week.from
+                && transaction.bookingDate <= week.to
+            ))
 
-                return runningTotal + getAmountSpent(transaction)
-            }, 0),
-        }))
+            return {
+                ...week,
+                availableBudget: weekAvailable,
+                totalSpent: transactions.reduce(
+                    (runningTotal, transaction) => runningTotal + getAmountSpent(transaction),
+                    0,
+                ),
+                transactions,
+                weekKey: `${week.from}:${week.to}`,
+            }
+        })
 
     return {
         currentWeekLabel: buildWeekRangeLabel(currentWeekStart, currentWeekEnd),
         cycleBudget,
+        isCurrentCycle,
         cycleRemaining,
         cycleSpent,
         weekAvailable,

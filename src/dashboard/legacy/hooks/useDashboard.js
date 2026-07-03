@@ -13,6 +13,12 @@ import {
     buildCycleIncomeCategoriesMessage,
 } from '../lib/messages'
 
+function getInitialSelectedCycleStart() {
+    const searchParams = new URLSearchParams(window.location.search)
+
+    return searchParams.get('cycleStart') || ''
+}
+
 function getEffectiveSelectedCycleStart(selectedCycleStart, cycleOptions) {
     return cycleOptions.some((option) => option.from === selectedCycleStart)
         ? selectedCycleStart
@@ -298,7 +304,7 @@ async function fetchDashboardData(selectedCycleStart) {
 
 export function useDashboard() {
     const [activeTab, setActiveTab] = useState(getInitialTab)
-    const [selectedCycleStart, setSelectedCycleStart] = useState('')
+    const [selectedCycleStart, setSelectedCycleStart] = useState(getInitialSelectedCycleStart)
     const [categories, setCategories] = useState([])
     const [cycleOptions, setCycleOptions] = useState([])
     const [cycleIncomeCategories, setCycleIncomeCategories] = useState({
@@ -547,6 +553,46 @@ export function useDashboard() {
         }
     }
 
+    async function setCycleIncomeTransactionRelation(transaction, isRelatedToCycle) {
+        const normalizedCategory = (transaction.category || '').trim()
+
+        if (!normalizedCategory) {
+            showToast('Assign a category to this income before changing whether it belongs to the cycle.')
+            return false
+        }
+
+        setIsBusy(true)
+
+        try {
+            await fetchJson(`/api/transactions/${transaction.transactionId}/categorize`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    category: normalizedCategory,
+                    saveRule: false,
+                    ruleBehavior: transaction.merchantRuleBehavior === 'AlwaysReview' ? 'AlwaysReview' : 'AutoApply',
+                    excludeFromCalculations: !isRelatedToCycle,
+                    isMonthlyRecurring: Boolean(transaction.isMonthlyRecurring),
+                }),
+            })
+
+            applyDashboardData(await fetchDashboardData(selectedCycleStart))
+            showToast(
+                isRelatedToCycle
+                    ? `${normalizedCategory} income is included in cycle totals again.`
+                    : `${normalizedCategory} income is no longer counted in cycle totals.`,
+            )
+            return true
+        } catch (error) {
+            handleError(error)
+            return false
+        } finally {
+            setIsBusy(false)
+        }
+    }
+
     async function deleteCategoryMapping({ mappingId, merchantKey }) {
         const confirmed = window.confirm(
             `Delete the mapping for ${merchantKey}? Future imports will stop using this reusable rule.`,
@@ -604,9 +650,18 @@ export function useDashboard() {
     }
 
     useEffect(() => {
-        const nextUrl = `${window.location.pathname}${window.location.search}#${activeTab}`
+        const searchParams = new URLSearchParams(window.location.search)
+
+        if (selectedCycleStart) {
+            searchParams.set('cycleStart', selectedCycleStart)
+        } else {
+            searchParams.delete('cycleStart')
+        }
+
+        const nextSearch = searchParams.toString()
+        const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}#${activeTab}`
         window.history.replaceState(null, '', nextUrl)
-    }, [activeTab])
+    }, [activeTab, selectedCycleStart])
 
     useEffect(() => {
         let cancelled = false
@@ -683,6 +738,7 @@ export function useDashboard() {
         reviewQueue,
         saveCategoryMapping,
         saveCycleIncomeCategories,
+        setCycleIncomeTransactionRelation,
         selectedCycleStart: effectiveSelectedCycleStart,
         setActiveTab,
         setCategorizedPage,

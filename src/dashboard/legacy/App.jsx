@@ -38,29 +38,8 @@ function App() {
       <main className="shell page-stack">
         <ImportTab
           active={dashboard.activeTab === 'import'}
-          categories={dashboard.categories}
-          categorizedExpenses={dashboard.categorizedExpenses}
-          categorizedPage={dashboard.categorizedPage}
-          categorizedPageSize={dashboard.categorizedPageSize}
-          cycleIncomeCategories={dashboard.cycleIncomeCategories}
-          categoryMappings={dashboard.categoryMappings}
-          incomePage={dashboard.incomePage}
-          incomePageSize={dashboard.incomePageSize}
-          incomeTransactions={dashboard.incomeTransactions}
           importResult={dashboard.importResult}
           isBusy={dashboard.isBusy}
-          mappingsPage={dashboard.mappingPage}
-          mappingsPageSize={dashboard.mappingPageSize}
-          onCategorize={dashboard.categorizeTransaction}
-          onCategorizedPageChange={dashboard.setCategorizedPage}
-          onCategorizedPageSizeChange={dashboard.setCategorizedPageSize}
-          onDeleteMapping={dashboard.deleteCategoryMapping}
-          onIncomePageChange={dashboard.setIncomePage}
-          onIncomePageSizeChange={dashboard.setIncomePageSize}
-          onMappingsPageChange={dashboard.setMappingPage}
-          onMappingsPageSizeChange={dashboard.setMappingPageSize}
-          onSaveMapping={dashboard.saveCategoryMapping}
-          onSaveCycleIncomeCategories={dashboard.saveCycleIncomeCategories}
           onUpload={dashboard.uploadWorkbook}
         />
 
@@ -71,7 +50,9 @@ function App() {
           currentCycleReport={dashboard.currentCycleReport}
           currentCycleTransactions={dashboard.currentCycleTransactions}
           cycleTransactions={dashboard.cycleTransactions}
+          isBusy={dashboard.isBusy}
           monthlyReport={dashboard.monthlyReport}
+          onSetCycleIncomeTransactionRelation={dashboard.setCycleIncomeTransactionRelation}
           previousCycleCategorySpend={dashboard.previousCycleCategorySpend}
           previousCycleComparison={dashboard.previousCycleComparison}
           selectedCycleStart={dashboard.selectedCycleStart}
@@ -80,10 +61,29 @@ function App() {
         <ReviewTab
           active={dashboard.activeTab === 'review'}
           categories={dashboard.categories}
+          categorizedExpenses={dashboard.categorizedExpenses}
+          categorizedPage={dashboard.categorizedPage}
+          categorizedPageSize={dashboard.categorizedPageSize}
+          cycleIncomeCategories={dashboard.cycleIncomeCategories}
+          categoryMappings={dashboard.categoryMappings}
+          incomePage={dashboard.incomePage}
+          incomePageSize={dashboard.incomePageSize}
+          incomeTransactions={dashboard.incomeTransactions}
           isBusy={dashboard.isBusy}
           onCategorize={dashboard.categorizeTransaction}
+          onCategorizedPageChange={dashboard.setCategorizedPage}
+          onCategorizedPageSizeChange={dashboard.setCategorizedPageSize}
+          onDeleteMapping={dashboard.deleteCategoryMapping}
+          onIncomePageChange={dashboard.setIncomePage}
+          onIncomePageSizeChange={dashboard.setIncomePageSize}
+          onMappingsPageChange={dashboard.setMappingPage}
+          onMappingsPageSizeChange={dashboard.setMappingPageSize}
           onPageChange={dashboard.setReviewPage}
           onPageSizeChange={dashboard.setReviewPageSize}
+          onSaveMapping={dashboard.saveCategoryMapping}
+          onSaveCycleIncomeCategories={dashboard.saveCycleIncomeCategories}
+          mappingsPage={dashboard.mappingPage}
+          mappingsPageSize={dashboard.mappingPageSize}
           page={dashboard.reviewPage}
           pageSize={dashboard.reviewPageSize}
           reviewQueue={dashboard.reviewQueue}

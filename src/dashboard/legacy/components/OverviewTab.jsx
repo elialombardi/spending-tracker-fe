@@ -19,7 +19,9 @@ export default function OverviewTab({
     comparisonCycleReports,
     comparisonCycleTransactions,
     cycleTransactions,
+    isBusy,
     monthlyReport,
+    onSetCycleIncomeTransactionRelation,
     previousCycleCategorySpend,
     previousCycleComparison,
     selectedCycleStart,
@@ -62,6 +64,8 @@ export default function OverviewTab({
                 <CurrentMonthTrendsSection
                     cycleReport={monthlyReport}
                     cycleTransactions={cycleTransactions}
+                    isBusy={isBusy}
+                    onSetCycleIncomeTransactionRelation={onSetCycleIncomeTransactionRelation}
                 />
                 <MetricsPanel cycleTransactions={cycleTransactions} monthlyReport={monthlyReport} />
 

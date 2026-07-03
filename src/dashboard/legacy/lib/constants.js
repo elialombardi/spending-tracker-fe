@@ -1,7 +1,7 @@
-export const REVIEW_PAGE_SIZE = 6
-export const CORRECTION_PAGE_SIZE = 6
-export const INCOME_PAGE_SIZE = 6
-export const MAPPING_PAGE_SIZE = 6
+export const REVIEW_PAGE_SIZE = 20
+export const CORRECTION_PAGE_SIZE = 20
+export const INCOME_PAGE_SIZE = 20
+export const MAPPING_PAGE_SIZE = 20
 export const PAGE_SIZE_OPTIONS = [6, 10, 20, 50]
 
 export const DASHBOARD_TABS = [

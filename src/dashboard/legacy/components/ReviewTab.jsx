@@ -3,23 +3,46 @@ import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
 import CategoryAssignmentCard from './shared/CategoryAssignmentCard'
 import EmptyState from './shared/EmptyState'
+import ImportManagementPanel from './ImportManagementPanel'
 import Pagination from './shared/Pagination'
 
 export default function ReviewTab({
     active,
     categories,
+    categorizedExpenses,
+    categorizedPage,
+    categorizedPageSize,
+    cycleIncomeCategories,
+    categoryMappings,
+    incomePage,
+    incomePageSize,
+    incomeTransactions,
     isBusy,
     onCategorize,
+    onCategorizedPageChange,
+    onCategorizedPageSizeChange,
+    onDeleteMapping,
+    onIncomePageChange,
+    onIncomePageSizeChange,
+    onMappingsPageChange,
+    onMappingsPageSizeChange,
     onPageChange,
     onPageSizeChange,
+    onSaveMapping,
+    onSaveCycleIncomeCategories,
+    mappingsPage,
+    mappingsPageSize,
     page,
     pageSize,
     reviewQueue,
 }) {
-    const pageCount = Math.max(1, Math.ceil(reviewQueue.length / pageSize))
+    const sortedReviewQueue = [...reviewQueue].sort(
+        (left, right) => Math.abs(right.amount) - Math.abs(left.amount),
+    )
+    const pageCount = Math.max(1, Math.ceil(sortedReviewQueue.length / pageSize))
     const currentPage = Math.min(page, pageCount)
     const pageStart = (currentPage - 1) * pageSize
-    const pageItems = reviewQueue.slice(pageStart, pageStart + pageSize)
+    const pageItems = sortedReviewQueue.slice(pageStart, pageStart + pageSize)
 
     return (
         <section
@@ -40,7 +63,7 @@ export default function ReviewTab({
                         </Typography>
                     </Box>
 
-                    {reviewQueue.length === 0 ? (
+                    {sortedReviewQueue.length === 0 ? (
                         <EmptyState message="Nothing to review for the selected income cycle. The learned rules covered everything." />
                     ) : (
                         <>
@@ -59,15 +82,44 @@ export default function ReviewTab({
 
                             <Pagination
                                 currentPage={currentPage}
-                                itemCount={reviewQueue.length}
+                                itemCount={sortedReviewQueue.length}
                                 onPageChange={onPageChange}
                                 onPageSizeChange={onPageSizeChange}
                                 pageCount={pageCount}
                                 pageSize={pageSize}
                             />
+
+
                         </>
                     )}
                 </Paper>
+
+                <Box sx={{ mt: 2 }}>
+                    <ImportManagementPanel
+                        categories={categories}
+                        categorizedExpenses={categorizedExpenses}
+                        categorizedPage={categorizedPage}
+                        categorizedPageSize={categorizedPageSize}
+                        cycleIncomeCategories={cycleIncomeCategories}
+                        categoryMappings={categoryMappings}
+                        incomePage={incomePage}
+                        incomePageSize={incomePageSize}
+                        incomeTransactions={incomeTransactions}
+                        isBusy={isBusy}
+                        mappingsPage={mappingsPage}
+                        mappingsPageSize={mappingsPageSize}
+                        onCategorize={onCategorize}
+                        onCategorizedPageChange={onCategorizedPageChange}
+                        onCategorizedPageSizeChange={onCategorizedPageSizeChange}
+                        onDeleteMapping={onDeleteMapping}
+                        onIncomePageChange={onIncomePageChange}
+                        onIncomePageSizeChange={onIncomePageSizeChange}
+                        onMappingsPageChange={onMappingsPageChange}
+                        onMappingsPageSizeChange={onMappingsPageSizeChange}
+                        onSaveMapping={onSaveMapping}
+                        onSaveCycleIncomeCategories={onSaveCycleIncomeCategories}
+                    />
+                </Box>
             </Box>
         </section>
     )
