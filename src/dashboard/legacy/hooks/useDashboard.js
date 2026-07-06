@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { fetchJson, readError, API_BASE } from '../lib/api'
+import { canWrite, useAuthSession } from '../../../auth'
+import { fetchJson, fetchApiResponse, downloadFile, readError } from '../lib/api'
 import {
     CORRECTION_PAGE_SIZE,
     INCOME_PAGE_SIZE,
@@ -303,6 +304,8 @@ async function fetchDashboardData(selectedCycleStart) {
 }
 
 export function useDashboard() {
+    const { session } = useAuthSession()
+    const userCanWrite = canWrite(session)
     const [activeTab, setActiveTab] = useState(getInitialTab)
     const [selectedCycleStart, setSelectedCycleStart] = useState(getInitialSelectedCycleStart)
     const [categories, setCategories] = useState([])
@@ -350,8 +353,27 @@ export function useDashboard() {
 
     const handleError = useCallback((error) => {
         console.error(error)
+        if (error?.code === 'AUTH_REQUIRED') {
+            showToast('Your session expired. Please sign in again.')
+            return
+        }
+
+        if (error?.code === 'FORBIDDEN') {
+            showToast('You need a Writer or Admin account to modify data.')
+            return
+        }
+
         showToast(error instanceof Error ? error.message : 'Something went wrong.')
     }, [showToast])
+
+    const requireWriteAccess = useCallback(() => {
+        if (userCanWrite) {
+            return true
+        }
+
+        showToast('You need a Writer or Admin account to modify data.')
+        return false
+    }, [showToast, userCanWrite])
 
     const applyDashboardData = useCallback((data) => {
         setCategories(data.categories)
@@ -417,6 +439,10 @@ export function useDashboard() {
     }
 
     async function uploadWorkbook(file) {
+        if (!requireWriteAccess()) {
+            return false
+        }
+
         if (!file) {
             showToast('Choose a .xlsx workbook first.')
             return false
@@ -428,7 +454,7 @@ export function useDashboard() {
             const formData = new FormData()
             formData.append('file', file)
 
-            const response = await fetch((API_BASE || '') + '/api/imports/poste-italiane', {
+            const response = await fetchApiResponse('/api/imports/poste-italiane', {
                 method: 'POST',
                 body: formData,
             })
@@ -458,6 +484,10 @@ export function useDashboard() {
         excludeFromCalculations = false,
         isMonthlyRecurring = false,
     }) {
+        if (!requireWriteAccess()) {
+            return false
+        }
+
         const normalizedCategory = category.trim()
 
         if (!normalizedCategory) {
@@ -494,6 +524,10 @@ export function useDashboard() {
     }
 
     async function saveCategoryMapping({ mappingId, merchantKey, category, behavior }) {
+        if (!requireWriteAccess()) {
+            return false
+        }
+
         const normalizedCategory = category.trim()
 
         if (behavior === 'auto-apply' && !normalizedCategory) {
@@ -527,6 +561,10 @@ export function useDashboard() {
     }
 
     async function saveCycleIncomeCategories(categoryNames) {
+        if (!requireWriteAccess()) {
+            return false
+        }
+
         const normalizedCategories = normalizeCategoryNames(categoryNames)
 
         setIsBusy(true)
@@ -554,6 +592,10 @@ export function useDashboard() {
     }
 
     async function setCycleIncomeTransactionRelation(transaction, isRelatedToCycle) {
+        if (!requireWriteAccess()) {
+            return false
+        }
+
         const normalizedCategory = (transaction.category || '').trim()
 
         if (!normalizedCategory) {
@@ -594,6 +636,10 @@ export function useDashboard() {
     }
 
     async function deleteCategoryMapping({ mappingId, merchantKey }) {
+        if (!requireWriteAccess()) {
+            return false
+        }
+
         const confirmed = window.confirm(
             `Delete the mapping for ${merchantKey}? Future imports will stop using this reusable rule.`,
         )
@@ -618,14 +664,20 @@ export function useDashboard() {
         }
     }
 
-    function triggerExport(format) {
+    async function triggerExport(format) {
         const cycleStart = selectedCycleStart || cycleOptions[0]?.from
         if (!cycleStart) {
             showToast('No cycle is available to export.')
             return
         }
 
-        window.location.href = (API_BASE || '') + `/api/reports/cycle/export?cycleStart=${encodeURIComponent(cycleStart)}&format=${format}`
+        try {
+            await downloadFile(`/api/reports/cycle/export?cycleStart=${encodeURIComponent(cycleStart)}&format=${format}`, {
+                fileName: `cycle-${cycleStart}.${format}`,
+            })
+        } catch (error) {
+            handleError(error)
+        }
     }
 
     const effectiveSelectedCycleStart = getEffectiveSelectedCycleStart(selectedCycleStart, cycleOptions)
@@ -751,6 +803,7 @@ export function useDashboard() {
         setReviewPageSize,
         setSelectedCycleStart,
         toastMessage,
+        canWrite: userCanWrite,
         triggerExport,
         uploadWorkbook,
     }

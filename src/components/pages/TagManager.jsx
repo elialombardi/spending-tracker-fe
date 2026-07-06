@@ -22,7 +22,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import TagMultiSelect from '../TagMultiSelect';
 
-function TagManager({ tags, locations, onRenameTag, onDeleteTag, onCreateTag, onToggleLocationTag, onUpdateLocation }) {
+function TagManager({ canWrite, tags, locations, onRenameTag, onDeleteTag, onCreateTag, onToggleLocationTag, onUpdateLocation }) {
     const safeTags = Array.isArray(tags) ? tags : [];
     const safeLocations = Array.isArray(locations) ? locations : [];
     const [selectedTag, setSelectedTag] = useState(safeTags[0] || '');
@@ -94,19 +94,25 @@ function TagManager({ tags, locations, onRenameTag, onDeleteTag, onCreateTag, on
                         <MenuItem value="">--</MenuItem>
                         {safeTags.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
                     </Select>
-                    <TextField size="small" placeholder="New name" value={newTagName} onChange={(e) => setNewTagName(e.target.value)} />
-                    <Button variant="contained" size="small" onClick={handleRename}>Rename</Button>
-                    <Button variant="outlined" color="error" size="small" onClick={handleDelete} startIcon={<DeleteIcon />}>Delete</Button>
+                    {canWrite ? (
+                        <>
+                            <TextField size="small" placeholder="New name" value={newTagName} onChange={(e) => setNewTagName(e.target.value)} />
+                            <Button variant="contained" size="small" onClick={handleRename}>Rename</Button>
+                            <Button variant="outlined" color="error" size="small" onClick={handleDelete} startIcon={<DeleteIcon />}>Delete</Button>
+                        </>
+                    ) : null}
                 </Box>
             </Paper>
 
-            <Paper sx={{ p: 2, mb: 2 }}>
-                <Typography variant="subtitle2">Create new tag</Typography>
-                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                    <TextField size="small" placeholder="Tag name" value={createInput} onChange={(e) => setCreateInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (createInput) { onCreateTag && onCreateTag(createInput); setCreateInput(''); } } }} />
-                    <Button variant="contained" size="small" onClick={() => { if (createInput) { onCreateTag && onCreateTag(createInput); setCreateInput(''); } }}>Add</Button>
-                </Box>
-            </Paper>
+            {canWrite ? (
+                <Paper sx={{ p: 2, mb: 2 }}>
+                    <Typography variant="subtitle2">Create new tag</Typography>
+                    <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                        <TextField size="small" placeholder="Tag name" value={createInput} onChange={(e) => setCreateInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (createInput) { onCreateTag && onCreateTag(createInput); setCreateInput(''); } } }} />
+                        <Button variant="contained" size="small" onClick={() => { if (createInput) { onCreateTag && onCreateTag(createInput); setCreateInput(''); } }}>Add</Button>
+                    </Box>
+                </Paper>
+            ) : null}
 
             <Box>
                 <Typography variant="h6" gutterBottom>Locations with tag: {selectedTag || '—'}</Typography>
@@ -115,7 +121,7 @@ function TagManager({ tags, locations, onRenameTag, onDeleteTag, onCreateTag, on
                         <List>
                             {safeLocations.map((loc) => (
                                 <ListItem key={loc.id} divider>
-                                    <Checkbox edge="start" checked={Array.isArray(loc.tags) ? loc.tags.includes(selectedTag) : false} onChange={(e) => onToggleLocationTag && onToggleLocationTag(loc.id, selectedTag, e.target.checked)} />
+                                    <Checkbox edge="start" checked={Array.isArray(loc.tags) ? loc.tags.includes(selectedTag) : false} disabled={!canWrite} onChange={(e) => onToggleLocationTag && onToggleLocationTag(loc.id, selectedTag, e.target.checked)} />
                                     <ListItemText
                                         primary={loc.title || loc.name || `#${loc.id}`}
                                         secondary={
@@ -127,7 +133,7 @@ function TagManager({ tags, locations, onRenameTag, onDeleteTag, onCreateTag, on
                                         sx={{ ml: 1 }}
                                     />
                                     <ListItemSecondaryAction>
-                                        <IconButton edge="end" onClick={() => beginEdit(loc)} aria-label="edit"><EditIcon /></IconButton>
+                                        {canWrite ? <IconButton edge="end" onClick={() => beginEdit(loc)} aria-label="edit"><EditIcon /></IconButton> : null}
                                     </ListItemSecondaryAction>
                                 </ListItem>
                             ))}

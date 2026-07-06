@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Checkbox from '@mui/material/Checkbox'
@@ -7,6 +7,7 @@ import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
+import Alert from '@mui/material/Alert'
 import CategoryAssignmentCard from './shared/CategoryAssignmentCard'
 import EmptyState from './shared/EmptyState'
 import MappingCard from './shared/MappingCard'
@@ -49,6 +50,7 @@ function sortCycleIncomeCategories(categories) {
 }
 
 export default function ImportManagementPanel({
+    canWrite,
     categories,
     categorizedExpenses,
     categorizedPage,
@@ -73,8 +75,12 @@ export default function ImportManagementPanel({
     onSaveCycleIncomeCategories,
 }) {
     const [activeManagementTab, setActiveManagementTab] = useState('corrections')
-    const [draftCycleIncomeCategories, setDraftCycleIncomeCategories] = useState([])
+    const [draftCycleIncomeCategories, setDraftCycleIncomeCategories] = useState(null)
     const [customCycleIncomeCategory, setCustomCycleIncomeCategory] = useState('')
+    const persistedCycleIncomeCategories = cycleIncomeCategories.categories
+        .filter((category) => category.definesCycle)
+        .map((category) => category.name)
+    const activeDraftCycleIncomeCategories = draftCycleIncomeCategories ?? persistedCycleIncomeCategories
     const sortedCategorizedExpenses = [...categorizedExpenses].sort(
         (left, right) => Math.abs(right.amount) - Math.abs(left.amount),
     )
@@ -98,7 +104,7 @@ export default function ImportManagementPanel({
     ).length
     const displayedCycleIncomeCategories = sortCycleIncomeCategories([
         ...cycleIncomeCategories.categories,
-        ...draftCycleIncomeCategories
+        ...activeDraftCycleIncomeCategories
             .filter(
                 (categoryName) =>
                     !cycleIncomeCategories.categories.some((category) =>
@@ -113,27 +119,24 @@ export default function ImportManagementPanel({
             })),
     ])
 
-    useEffect(() => {
-        setDraftCycleIncomeCategories(
-            cycleIncomeCategories.categories
-                .filter((category) => category.definesCycle)
-                .map((category) => category.name),
-        )
-    }, [cycleIncomeCategories])
-
     async function handleCycleIncomeCategoriesSave() {
-        await onSaveCycleIncomeCategories(draftCycleIncomeCategories)
+        const saved = await onSaveCycleIncomeCategories(activeDraftCycleIncomeCategories)
+        if (saved) {
+            setDraftCycleIncomeCategories(null)
+        }
     }
 
     function handleCycleIncomeCategoryToggle(categoryName) {
         setDraftCycleIncomeCategories((currentCategories) => {
-            if (currentCategories.some((currentCategory) => isSameCycleIncomeCategory(currentCategory, categoryName))) {
-                return currentCategories.filter(
+            const nextCategories = currentCategories ?? activeDraftCycleIncomeCategories
+
+            if (nextCategories.some((currentCategory) => isSameCycleIncomeCategory(currentCategory, categoryName))) {
+                return nextCategories.filter(
                     (currentCategory) => !isSameCycleIncomeCategory(currentCategory, categoryName),
                 )
             }
 
-            return [...currentCategories, normalizeCycleIncomeCategoryName(categoryName)].sort((left, right) =>
+            return [...nextCategories, normalizeCycleIncomeCategoryName(categoryName)].sort((left, right) =>
                 left.localeCompare(right),
             )
         })
@@ -148,11 +151,13 @@ export default function ImportManagementPanel({
         }
 
         setDraftCycleIncomeCategories((currentCategories) => {
-            if (currentCategories.some((currentCategory) => isSameCycleIncomeCategory(currentCategory, normalizedCategoryName))) {
-                return currentCategories
+            const nextCategories = currentCategories ?? activeDraftCycleIncomeCategories
+
+            if (nextCategories.some((currentCategory) => isSameCycleIncomeCategory(currentCategory, normalizedCategoryName))) {
+                return nextCategories
             }
 
-            return [...currentCategories, normalizedCategoryName].sort((left, right) => left.localeCompare(right))
+            return [...nextCategories, normalizedCategoryName].sort((left, right) => left.localeCompare(right))
         })
         setCustomCycleIncomeCategory('')
     }
@@ -168,7 +173,13 @@ export default function ImportManagementPanel({
                 </Typography>
             </Box>
 
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} sx={{ mb: 2 }} role="tablist" aria-label="Import management tabs">
+            {!canWrite ? (
+                <Alert severity="info">
+                    This workspace is read-only for your current role. Category corrections, mappings, and cycle-income settings are hidden until you sign in as Writer or Admin.
+                </Alert>
+            ) : null}
+
+            {canWrite ? <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} sx={{ mb: 2 }} role="tablist" aria-label="Import management tabs">
                 {MANAGEMENT_TABS.map((tab) => {
                     const isActive = activeManagementTab === tab.id
                     const count = tab.id === 'corrections'
@@ -192,13 +203,13 @@ export default function ImportManagementPanel({
                         </Button>
                     )
                 })}
-            </Stack>
+            </Stack> : null}
 
             <Box
                 id="import-panel-corrections"
                 role="tabpanel"
                 aria-labelledby="import-tab-corrections"
-                hidden={activeManagementTab !== 'corrections'}
+                hidden={!canWrite || activeManagementTab !== 'corrections'}
             >
                 <Box sx={{ mb: 1 }}>
                     <Typography variant="overline">Corrections</Typography>
@@ -218,7 +229,7 @@ export default function ImportManagementPanel({
                             {correctionsItems.map((transaction) => (
                                 <CategoryAssignmentCard
                                     categories={categories}
-                                    key={transaction.transactionId}
+                                    key={`${transaction.transactionId}-${transaction.category || ''}-${transaction.suggestedCategory || ''}-${transaction.merchantRuleBehavior || ''}-${transaction.excludeFromCalculations ? '1' : '0'}-${transaction.isMonthlyRecurring ? '1' : '0'}`}
                                     context="edit"
                                     isBusy={isBusy}
                                     onSave={onCategorize}
@@ -243,7 +254,7 @@ export default function ImportManagementPanel({
                 id="import-panel-mappings"
                 role="tabpanel"
                 aria-labelledby="import-tab-mappings"
-                hidden={activeManagementTab !== 'mappings'}
+                hidden={!canWrite || activeManagementTab !== 'mappings'}
             >
                 <Box sx={{ mb: 1 }}>
                     <Typography variant="overline">Mappings</Typography>
@@ -262,7 +273,7 @@ export default function ImportManagementPanel({
                             {mappingsItems.map((mapping) => (
                                 <MappingCard
                                     categories={categories}
-                                    key={mapping.mappingId}
+                                    key={`${mapping.mappingId}-${mapping.category || ''}-${mapping.behavior || ''}`}
                                     isBusy={isBusy}
                                     mapping={mapping}
                                     onDelete={onDeleteMapping}
@@ -287,7 +298,7 @@ export default function ImportManagementPanel({
                 id="import-panel-cycle-income"
                 role="tabpanel"
                 aria-labelledby="import-tab-cycle-income"
-                hidden={activeManagementTab !== 'cycle-income'}
+                hidden={!canWrite || activeManagementTab !== 'cycle-income'}
             >
                 <Box sx={{ mb: 1 }}>
                     <Typography variant="overline">Cycle starts</Typography>
@@ -330,7 +341,7 @@ export default function ImportManagementPanel({
                     ) : (
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }} className="cycle-income-category-list">
                             {displayedCycleIncomeCategories.map((category) => {
-                                const checked = draftCycleIncomeCategories.some((currentCategory) =>
+                                const checked = activeDraftCycleIncomeCategories.some((currentCategory) =>
                                     isSameCycleIncomeCategory(currentCategory, category.name),
                                 )
 
@@ -375,7 +386,7 @@ export default function ImportManagementPanel({
                                 {incomeItems.map((transaction) => (
                                     <CategoryAssignmentCard
                                         categories={categories}
-                                        key={transaction.transactionId}
+                                        key={`${transaction.transactionId}-${transaction.category || ''}-${transaction.suggestedCategory || ''}-${transaction.merchantRuleBehavior || ''}-${transaction.excludeFromCalculations ? '1' : '0'}-${transaction.isMonthlyRecurring ? '1' : '0'}`}
                                         context="edit"
                                         isBusy={isBusy}
                                         onSave={onCategorize}

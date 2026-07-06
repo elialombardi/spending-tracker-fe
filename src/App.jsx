@@ -1,10 +1,13 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
+import Alert from '@mui/material/Alert';
 import NavBar from './components/NavBar';
+import LoginScreen from './components/LoginScreen';
 import api from './api';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import Container from '@mui/material/Container';
 import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
+import { bootstrapDevelopmentSession, canWrite, isSessionExpired, login, logout, useAuthSession } from './auth';
+import { isDevelopmentEnv } from './config';
 
 const MapPage = lazy(() => import('./pages/MapPage'));
 const TagsPage = lazy(() => import('./pages/TagsPage'));
@@ -45,7 +48,7 @@ const defaultTags = ['restaurant', 'kids'];
 const defaultCenter = [41.9028, 12.4964];
 
 function App() {
-  const location = useLocation();
+  const { message: authMessage, session, status } = useAuthSession();
   const [locations, setLocations] = useState(() => {
     const saved = localStorage.getItem('locations');
     return saved ? JSON.parse(saved) : defaultLocations;
@@ -61,6 +64,23 @@ function App() {
 
   const [newLocation, setNewLocation] = useState(emptyLocation);
   const [center, setCenter] = useState(defaultCenter);
+  const [appError, setAppError] = useState('');
+
+  const canModify = canWrite(session);
+
+  useEffect(() => {
+    if (session && isSessionExpired(session)) {
+      logout('Your session expired. Please sign in again.');
+    }
+  }, [session]);
+
+  useEffect(() => {
+    if (!session && isDevelopmentEnv) {
+      bootstrapDevelopmentSession().catch((error) => {
+        console.warn('Development auth bootstrap failed', error);
+      });
+    }
+  }, [session]);
 
   useEffect(() => {
     localStorage.setItem('locations', JSON.stringify(locations));
@@ -72,6 +92,10 @@ function App() {
 
   // Load from API if available, otherwise keep localStorage/defaults
   useEffect(() => {
+    if (!session) {
+      return undefined;
+    }
+
     let mounted = true;
     (async () => {
       try {
@@ -80,12 +104,29 @@ function App() {
         if (Array.isArray(remoteLocations)) setLocations(remoteLocations);
         if (Array.isArray(remoteTags)) setTags(remoteTags);
       } catch (err) {
-        // fail silently and keep local state
-        console.info('API not available or failed to load initial data, using local state', err && err.message);
+        if (!mounted || err?.code === 'AUTH_REQUIRED') return;
+        if (err?.code === 'FORBIDDEN') {
+          setAppError('Your account can sign in, but it cannot load the requested data.');
+          return;
+        }
+        setAppError(err instanceof Error ? err.message : 'Failed to load data from the API.');
       }
     })();
     return () => { mounted = false; };
-  }, []);
+  }, [session]);
+
+  function handleApiError(err, fallbackMessage) {
+    if (err?.code === 'AUTH_REQUIRED') {
+      return;
+    }
+
+    if (err?.code === 'FORBIDDEN') {
+      setAppError('Your role does not allow that action.');
+      return;
+    }
+
+    setAppError(err instanceof Error ? err.message : fallbackMessage);
+  }
 
   const handleAddLocation = (e) => {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
@@ -93,15 +134,9 @@ function App() {
       const payload = { ...newLocation, lat: parseFloat(newLocation.lat), lng: parseFloat(newLocation.lng) };
       try {
         const created = await api.createLocation(payload);
-        // server returns created resource with id
         setLocations((current) => [...current, created || payload]);
       } catch (err) {
-        // fallback to client-side id
-        const id = Date.now();
-        setLocations((currentLocations) => [
-          ...currentLocations,
-          { ...payload, id },
-        ]);
+        handleApiError(err, 'Failed to create the location.');
       } finally {
         setNewLocation(emptyLocation);
       }
@@ -127,9 +162,13 @@ function App() {
       if (navigator.permissions && navigator.permissions.query) {
         navigator.permissions.query({ name: 'geolocation' }).then((res) => {
           if (res.state === 'denied') return alert('Location access is denied. Please enable location permissions for this site.');
-        }).catch(() => { });
+        }).catch((error) => {
+          console.debug('Unable to query geolocation permissions', error);
+        });
       }
-    } catch { }
+    } catch (error) {
+      console.debug('Geolocation permissions API unavailable', error);
+    }
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -156,17 +195,34 @@ function App() {
     return (loc.tags || []).includes(filter);
   });
 
-  const pageTitle = location.pathname === '/dashboard' ? 'Spending Dashboard' : 'My Location Map';
   const routeFallback = <Box sx={{ p: 3 }}>Loading…</Box>;
+
+  async function handleLogin(credentials) {
+    setAppError('');
+    await login(credentials);
+  }
+
+  if (!session) {
+    return (
+      <LoginScreen
+        errorMessage={appError || authMessage}
+        isBusy={status === 'authenticating'}
+        isDevelopment={isDevelopmentEnv}
+        onSubmit={handleLogin}
+      />
+    );
+  }
 
   return (
     <Container maxWidth="lg" sx={{ py: 2 }}>
-      <NavBar />
+      <NavBar canWrite={canModify} onLogout={() => logout()} session={session} />
       <Box>
+        {appError ? <Alert severity="error" sx={{ mb: 2 }}>{appError}</Alert> : null}
         <Suspense fallback={routeFallback}>
           <Routes>
             <Route path="/" element={
               <MapPage
+                canWrite={canModify}
                 filteredLocations={filteredLocations}
                 tags={tags}
                 filter={filter}
@@ -183,26 +239,36 @@ function App() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/tags" element={
               <TagsPage
+                canWrite={canModify}
                 tags={tags}
                 locations={locations}
                 onRenameTag={async (oldTag, newTag) => {
                   try {
                     await api.renameTag(oldTag, newTag);
-                  } catch (err) { console.info('renameTag API failed; falling back to client update'); }
+                  } catch (err) {
+                    handleApiError(err, 'Failed to rename the tag.');
+                    return;
+                  }
                   setTags((t) => t.map((x) => (x === oldTag ? newTag : x)));
                   setLocations((locs) => locs.map((L) => ({ ...L, tags: (L.tags || []).map((tg) => (tg === oldTag ? newTag : tg)) })));
                 }}
                 onDeleteTag={async (tagToDelete) => {
                   try {
                     await api.deleteTag(tagToDelete);
-                  } catch (err) { console.info('deleteTag API failed; falling back to client update'); }
+                  } catch (err) {
+                    handleApiError(err, 'Failed to delete the tag.');
+                    return;
+                  }
                   setTags((t) => t.filter((x) => x !== tagToDelete));
                   setLocations((locs) => locs.map((L) => ({ ...L, tags: (L.tags || []).filter((tg) => tg !== tagToDelete) })));
                 }}
                 onCreateTag={async (newTag) => {
                   try {
                     await api.createTag(newTag);
-                  } catch (err) { console.info('createTag API failed; falling back to client update'); }
+                  } catch (err) {
+                    handleApiError(err, 'Failed to create the tag.');
+                    return;
+                  }
                   setTags((t) => (t.includes(newTag) ? t : [...t, newTag]));
                 }}
                 onToggleLocationTag={async (locId, tag, present) => {
@@ -210,26 +276,20 @@ function App() {
                     const updated = await api.toggleLocationTag(locId, tag, present);
                     if (updated && updated.id) {
                       setLocations((locs) => locs.map((L) => (L.id === updated.id ? updated : L)));
-                      return;
                     }
-                  } catch (err) { console.info('toggleLocationTag API failed; falling back to client update'); }
-                  setLocations((locs) => locs.map((L) => {
-                    if (L.id !== locId) return L;
-                    if (present) {
-                      return L.tags && L.tags.includes(tag) ? L : { ...L, tags: [...(L.tags || []), tag] };
-                    }
-                    return { ...L, tags: (L.tags || []).filter((tg) => tg !== tag) };
-                  }));
+                  } catch (err) {
+                    handleApiError(err, 'Failed to update the location tag.');
+                  }
                 }}
                 onUpdateLocation={async (locId, updated) => {
                   try {
                     const remote = await api.updateLocation(locId, updated);
                     if (remote && remote.id) {
                       setLocations((locs) => locs.map((L) => (L.id === locId ? remote : L)));
-                      return;
                     }
-                  } catch (err) { console.info('updateLocation API failed; falling back to client update'); }
-                  setLocations((locs) => locs.map((L) => (L.id === locId ? updated : L)));
+                  } catch (err) {
+                    handleApiError(err, 'Failed to update the location.');
+                  }
                 }}
               />
             } />

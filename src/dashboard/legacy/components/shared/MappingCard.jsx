@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Paper from '@mui/material/Paper'
 import Box from '@mui/material/Box'
 import Stack from '@mui/material/Stack'
@@ -18,11 +18,6 @@ export default function MappingCard({ categories, isBusy, mapping, onDelete, onS
     const [behavior, setBehavior] = useState(
         mapping.behavior === 'AlwaysReview' ? 'always-review' : 'auto-apply',
     )
-
-    useEffect(() => {
-        setCategory(mapping.category || '')
-        setBehavior(mapping.behavior === 'AlwaysReview' ? 'always-review' : 'auto-apply')
-    }, [mapping])
 
     async function handleSubmit(event) {
         event.preventDefault()

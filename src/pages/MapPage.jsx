@@ -1,11 +1,13 @@
 import Box from '@mui/material/Box'
 import Paper from '@mui/material/Paper'
+import Alert from '@mui/material/Alert'
 import LocationMap from '../components/LocationMap'
 import FilterButtons from '../components/FilterButtons'
 import SearchBox from '../components/SearchBox'
 import LocationForm from '../components/form'
 
 export default function MapPage({
+    canWrite,
     filteredLocations,
     tags,
     filter,
@@ -34,7 +36,13 @@ export default function MapPage({
                     </Paper>
 
                     <Paper sx={{ p: 2 }}>
-                        <LocationForm value={newLocation} onChange={setNewLocation} onSubmit={handleAddLocation} tagOptions={tags} />
+                        {canWrite ? (
+                            <LocationForm value={newLocation} onChange={setNewLocation} onSubmit={handleAddLocation} tagOptions={tags} />
+                        ) : (
+                            <Alert severity="info">
+                                Reader accounts can browse saved locations, but adding locations requires a Writer or Admin role.
+                            </Alert>
+                        )}
                     </Paper>
                 </Box>
             </Box>

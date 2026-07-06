@@ -1,6 +1,7 @@
 import Box from '@mui/material/Box'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
+import Alert from '@mui/material/Alert'
 import CategoryAssignmentCard from './shared/CategoryAssignmentCard'
 import EmptyState from './shared/EmptyState'
 import ImportManagementPanel from './ImportManagementPanel'
@@ -8,6 +9,7 @@ import Pagination from './shared/Pagination'
 
 export default function ReviewTab({
     active,
+    canWrite,
     categories,
     categorizedExpenses,
     categorizedPage,
@@ -63,15 +65,21 @@ export default function ReviewTab({
                         </Typography>
                     </Box>
 
-                    {sortedReviewQueue.length === 0 ? (
+                    {!canWrite ? (
+                        <Alert severity="info">
+                            Reader accounts can inspect reports, but categorization and mapping updates require a Writer or Admin role.
+                        </Alert>
+                    ) : null}
+
+                    {canWrite && sortedReviewQueue.length === 0 ? (
                         <EmptyState message="Nothing to review for the selected income cycle. The learned rules covered everything." />
-                    ) : (
+                    ) : canWrite ? (
                         <>
                             <Box className="review-queue">
                                 {pageItems.map((transaction) => (
                                     <CategoryAssignmentCard
                                         categories={categories}
-                                        key={transaction.transactionId}
+                                        key={`${transaction.transactionId}-${transaction.category || ''}-${transaction.suggestedCategory || ''}-${transaction.merchantRuleBehavior || ''}-${transaction.excludeFromCalculations ? '1' : '0'}-${transaction.isMonthlyRecurring ? '1' : '0'}`}
                                         context="review"
                                         isBusy={isBusy}
                                         onSave={onCategorize}
@@ -91,11 +99,12 @@ export default function ReviewTab({
 
 
                         </>
-                    )}
+                    ) : null}
                 </Paper>
 
                 <Box sx={{ mt: 2 }}>
                     <ImportManagementPanel
+                        canWrite={canWrite}
                         categories={categories}
                         categorizedExpenses={categorizedExpenses}
                         categorizedPage={categorizedPage}

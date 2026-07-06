@@ -5,7 +5,7 @@ import Button from '@mui/material/Button'
 import Box from '@mui/material/Box'
 import { NavLink, useLocation } from 'react-router-dom'
 
-function NavBar() {
+function NavBar({ canWrite, onLogout, session }) {
     const loc = useLocation()
     const path = loc.pathname
 
@@ -21,6 +21,14 @@ function NavBar() {
                     </Button>
                     <Button component={NavLink} to="/dashboard" variant={path === '/dashboard' ? 'contained' : 'text'} sx={{ ml: 1 }}>
                         Dashboard
+                    </Button>
+                </Box>
+                <Box sx={{ alignItems: 'center', display: 'flex', gap: 1.5 }}>
+                    <Typography color="text.secondary" variant="body2">
+                        {session.username} · {session.role}{canWrite ? '' : ' · Read only'}
+                    </Typography>
+                    <Button onClick={onLogout} variant="outlined">
+                        Logout
                     </Button>
                 </Box>
             </Toolbar>

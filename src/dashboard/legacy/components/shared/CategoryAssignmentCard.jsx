@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Box from '@mui/material/Box'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
@@ -29,13 +29,6 @@ export default function CategoryAssignmentCard({ categories, context, isBusy, on
     const [ruleMode, setRuleMode] = useState(getDefaultRuleMode(transaction, context))
     const [excludeFromCalculations, setExcludeFromCalculations] = useState(Boolean(transaction.excludeFromCalculations))
     const [isMonthlyRecurring, setIsMonthlyRecurring] = useState(Boolean(transaction.isMonthlyRecurring))
-
-    useEffect(() => {
-        setCategory(getDefaultCategory(transaction, context))
-        setRuleMode(getDefaultRuleMode(transaction, context))
-        setExcludeFromCalculations(Boolean(transaction.excludeFromCalculations))
-        setIsMonthlyRecurring(Boolean(transaction.isMonthlyRecurring))
-    }, [context, transaction])
 
     async function handleSubmit(event) {
         event.preventDefault()

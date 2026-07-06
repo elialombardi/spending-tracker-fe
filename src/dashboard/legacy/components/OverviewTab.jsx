@@ -16,6 +16,7 @@ import {
 
 export default function OverviewTab({
     active,
+    canWrite,
     comparisonCycleReports,
     comparisonCycleTransactions,
     cycleTransactions,
@@ -62,6 +63,7 @@ export default function OverviewTab({
             <div className="layout">
 
                 <CurrentMonthTrendsSection
+                    canWrite={canWrite}
                     cycleReport={monthlyReport}
                     cycleTransactions={cycleTransactions}
                     isBusy={isBusy}

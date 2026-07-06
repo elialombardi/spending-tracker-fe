@@ -3,6 +3,7 @@ import Box from '@mui/material/Box'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
+import Alert from '@mui/material/Alert'
 import Stack from '@mui/material/Stack'
 import EmptyState from './shared/EmptyState'
 
@@ -35,6 +36,7 @@ function renderImportResult(importResult) {
 
 export default function ImportTab({
     active,
+    canWrite,
     importResult,
     isBusy,
     onUpload,
@@ -71,27 +73,33 @@ export default function ImportTab({
                         </Typography>
                     </Box>
 
-                    <Box component="form" onSubmit={handleSubmit}>
-                        <Stack spacing={1}>
-                            <Button variant="outlined" component="label">
-                                {selectedFile?.name || 'Drop a Poste Italiane .xlsx export here'}
-                                <input
-                                    key={inputKey}
-                                    id="workbook-file"
-                                    name="file"
-                                    type="file"
-                                    accept=".xlsx"
-                                    required
-                                    hidden
-                                    onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)}
-                                />
-                            </Button>
+                    {canWrite ? (
+                        <Box component="form" onSubmit={handleSubmit}>
+                            <Stack spacing={1}>
+                                <Button variant="outlined" component="label">
+                                    {selectedFile?.name || 'Drop a Poste Italiane .xlsx export here'}
+                                    <input
+                                        key={inputKey}
+                                        id="workbook-file"
+                                        name="file"
+                                        type="file"
+                                        accept=".xlsx"
+                                        required
+                                        hidden
+                                        onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)}
+                                    />
+                                </Button>
 
-                            <Button variant="contained" type="submit" disabled={isBusy || !selectedFile}>
-                                Import workbook
-                            </Button>
-                        </Stack>
-                    </Box>
+                                <Button variant="contained" type="submit" disabled={isBusy || !selectedFile}>
+                                    Import workbook
+                                </Button>
+                            </Stack>
+                        </Box>
+                    ) : (
+                        <Alert severity="info" sx={{ mb: 2 }}>
+                            Workbook import is available only to Writer and Admin accounts.
+                        </Alert>
+                    )}
 
                     <Box sx={{ mt: 2 }}>{renderImportResult(importResult)}</Box>
                 </Paper>

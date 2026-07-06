@@ -38,6 +38,7 @@ function App() {
       <main className="shell page-stack">
         <ImportTab
           active={dashboard.activeTab === 'import'}
+          canWrite={dashboard.canWrite}
           importResult={dashboard.importResult}
           isBusy={dashboard.isBusy}
           onUpload={dashboard.uploadWorkbook}
@@ -45,6 +46,7 @@ function App() {
 
         <OverviewTab
           active={dashboard.activeTab === 'overview'}
+          canWrite={dashboard.canWrite}
           comparisonCycleReports={dashboard.comparisonCycleReports}
           comparisonCycleTransactions={dashboard.comparisonCycleTransactions}
           currentCycleReport={dashboard.currentCycleReport}
@@ -60,6 +62,7 @@ function App() {
 
         <ReviewTab
           active={dashboard.activeTab === 'review'}
+          canWrite={dashboard.canWrite}
           categories={dashboard.categories}
           categorizedExpenses={dashboard.categorizedExpenses}
           categorizedPage={dashboard.categorizedPage}

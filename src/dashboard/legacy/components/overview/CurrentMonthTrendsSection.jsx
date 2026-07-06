@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
@@ -27,19 +27,12 @@ function getWeeklySpendBarColor(week) {
 }
 
 export default function CurrentMonthTrendsSection({
+    canWrite,
     cycleReport,
     cycleTransactions,
     isBusy,
     onSetCycleIncomeTransactionRelation,
 }) {
-    if (!cycleReport && cycleTransactions.length === 0) {
-        return (
-            <section className="panel current-month-trends-panel">
-                <EmptyState message="No current-cycle transactions are available yet." />
-            </section>
-        )
-    }
-
     const {
         currentWeekLabel,
         cycleBudget,
@@ -49,24 +42,20 @@ export default function CurrentMonthTrendsSection({
         weekAvailable,
         weekChartData,
         weekRemaining,
-        weekSpent,
     } = buildCurrentCycleTrendData({
         currentCycleReport: cycleReport,
         currentCycleTransactions: cycleTransactions,
     })
     const [selectedWeekKey, setSelectedWeekKey] = useState(null)
     const [isIncomeDrawerOpen, setIsIncomeDrawerOpen] = useState(false)
+    const hasCycleData = Boolean(cycleReport) || cycleTransactions.length > 0
     const cycleIncomeTransactions = cycleTransactions
         .filter((transaction) => transaction.direction === 'income')
         .sort((left, right) => right.bookingDate.localeCompare(left.bookingDate))
-
-    useEffect(() => {
-        if (selectedWeekKey && !weekChartData.some((week) => week.weekKey === selectedWeekKey)) {
-            setSelectedWeekKey(null)
-        }
-    }, [selectedWeekKey, weekChartData])
-
-    const selectedWeek = weekChartData.find((week) => week.weekKey === selectedWeekKey) ?? null
+    const visibleSelectedWeekKey = weekChartData.some((week) => week.weekKey === selectedWeekKey)
+        ? selectedWeekKey
+        : null
+    const selectedWeek = weekChartData.find((week) => week.weekKey === visibleSelectedWeekKey) ?? null
     const selectedWeekTransactions = selectedWeek
         ? [...selectedWeek.transactions].sort((left, right) => Math.abs(right.amount) - Math.abs(left.amount))
         : []
@@ -104,6 +93,14 @@ export default function CurrentMonthTrendsSection({
             value: formatMoney(cycleRemaining),
         },
     ]
+
+    if (!hasCycleData) {
+        return (
+            <section className="panel current-month-trends-panel">
+                <EmptyState message="No current-cycle transactions are available yet." />
+            </section>
+        )
+    }
 
     return (
         <section className="panel current-month-trends-panel">
@@ -151,9 +148,9 @@ export default function CurrentMonthTrendsSection({
                                         key={week.weekKey}
                                         fill={getWeeklySpendBarColor(week)}
                                         cursor="pointer"
-                                        opacity={selectedWeekKey && selectedWeekKey !== week.weekKey ? 0.55 : 1}
-                                        stroke={selectedWeekKey === week.weekKey ? '#f4a261' : undefined}
-                                        strokeWidth={selectedWeekKey === week.weekKey ? 2 : 0}
+                                        opacity={visibleSelectedWeekKey && visibleSelectedWeekKey !== week.weekKey ? 0.55 : 1}
+                                        stroke={visibleSelectedWeekKey === week.weekKey ? '#f4a261' : undefined}
+                                        strokeWidth={visibleSelectedWeekKey === week.weekKey ? 2 : 0}
                                         onClick={() => setSelectedWeekKey((currentKey) => currentKey === week.weekKey ? null : week.weekKey)}
                                     />
                                 ))}
@@ -490,12 +487,17 @@ export default function CurrentMonthTrendsSection({
                                         <Button
                                             variant={isRelatedToCycle ? 'outlined' : 'contained'}
                                             size="small"
-                                            disabled={isBusy || !transaction.category}
+                                            disabled={!canWrite || isBusy || !transaction.category}
                                             sx={{ mt: 1.5, alignSelf: 'flex-start' }}
                                             onClick={() => onSetCycleIncomeTransactionRelation(transaction, !isRelatedToCycle)}
                                         >
                                             {isRelatedToCycle ? 'Mark as not related to cycle' : 'Count in cycle budget'}
                                         </Button>
+                                        {!canWrite ? (
+                                            <Typography variant="caption" sx={{ display: 'block', mt: 0.75, color: 'rgba(255,255,255,0.5)' }}>
+                                                Updating cycle-income relations requires a Writer or Admin role.
+                                            </Typography>
+                                        ) : null}
                                         {!transaction.category ? (
                                             <Typography variant="caption" sx={{ display: 'block', mt: 0.75, color: 'rgba(255,255,255,0.5)' }}>
                                                 This income needs a category before it can be included or excluded.
